@@ -1,0 +1,39 @@
+import mongoose from "mongoose";
+const Schema = mongoose.Schema;
+
+
+const collectionSchema = new Schema({
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        index: true // Index for faster lookups of a user's history
+    },
+    transporter: {
+        type: Schema.Types.ObjectId,
+        ref: 'Transporter',
+        required: true,
+        index: true // Index for finding all collections by a transporter
+    },
+    weight: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    
+    wasteTypes: {
+        wet: { type: Number, default: 0 },
+        dry: { type: Number, default: 0 },
+        hazardous: { type: Number, default: 0 }
+    },
+    status: {
+        type: String,
+        enum: ['Collected', 'In-Transit', 'Processed', 'Cancelled'],
+        default: 'Collected'
+    }
+}, {
+    timestamps: true
+});
+
+const Collection = mongoose.model('Collection', collectionSchema);
+export default Collection;
