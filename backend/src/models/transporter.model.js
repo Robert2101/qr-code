@@ -38,7 +38,8 @@ const transporterSchema = new Schema({
     },
     currentLocation: {
         type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: { type: [Number] } // [longitude, latitude]
+        coordinates: { type: [Number] },
+        index: "2dsphere" // [longitude, latitude]
     }
 }, { timestamps: true });
 

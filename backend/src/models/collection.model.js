@@ -30,6 +30,17 @@ const collectionSchema = new Schema({
         type: String,
         enum: ['Collected', 'In-Transit', 'Processed', 'Cancelled'],
         default: 'Collected'
+    },
+    location: {
+        type: {
+            type: String,
+            enum: ["Point"],
+            default: "Point"
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
     }
 }, {
     timestamps: true
