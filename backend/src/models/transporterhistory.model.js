@@ -1,3 +1,6 @@
+import mongoose from 'mongoose';
+const Schema = mongoose.Schema;
+
 const transporterHistorySchema = new Schema({
     transporter: {
         type: Schema.Types.ObjectId,

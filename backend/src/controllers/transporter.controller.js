@@ -1,6 +1,5 @@
 import Transporter from '../models/transporter.model.js'
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import QRCode from "qrcode";
 import cloudinary from "../config/cloudinary.js";
 import { generateToken } from "../utils/jwt.js";
@@ -218,61 +217,77 @@ const updateProfile = async (req, res) => {
     }
 };
 const scan = async (req, res) => {
-    try {
-        const transporterId = req.user.id; // from protectedRoute
-        const { userId, weight, wasteTypes, coordinates } = req.body;
+  try {
+    const transporterId = req.user.id; // from protected route
+    const { userId, weight, wasteTypes, coordinates } = req.body;
 
-        if (!userId || !weight || !coordinates || coordinates.length !== 2) {
-            return res.status(400).json({ message: "Required data missing or invalid" });
-        }
-
-        // 1️⃣ Verify user exists
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: "User not found" });
-
-        // 2️⃣ Create Collection record
-        const collection = await Collection.create({
-            user: userId,
-            transporter: transporterId,
-            weight,
-            wasteTypes: wasteTypes || { wet: 0, dry: 0, hazardous: 0 },
-            location: {
-                type: "Point",
-                coordinates
-            }
-        });
-
-        
-        const today = new Date();
-        const dateKey = new Date(today.setHours(0, 0, 0, 0)); // midnight timestamp
-
-        let history = await TransporterHistory.findOne({ transporter: transporterId, date: dateKey });
-
-        if (!history) {
-            // create new document for today
-            history = new TransporterHistory({
-                transporter: transporterId,
-                date: dateKey,
-                checkpoints: []
-            });
-        }
-
-        
-        history.checkpoints.push({
-            location: { type: "Point", coordinates },
-            scannedAt: new Date()
-        });
-
-        await history.save();
-
-        res.status(201).json({
-            message: "Scan successful",
-            collection,
-            checkpoint: history.checkpoints[history.checkpoints.length - 1]
-        });
-
-    } catch (error) {
-        console.error("Scan error:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
+    // Validate required fields
+    if (!userId || !weight || !coordinates || coordinates.length !== 2) {
+      return res.status(400).json({ message: "Required data missing or invalid" });
     }
+
+    // Verify user exists
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Create Collection record
+    const collection = await Collection.create({
+      user: userId,
+      transporter: transporterId,
+      weight,
+      wasteTypes: wasteTypes || { wet: 0, dry: 0, hazardous: 0 },
+      location: {
+        type: "Point",
+        coordinates
+      }
+    });
+
+    // Update transporter’s current location
+    await Transporter.findByIdAndUpdate(transporterId, {
+      currentLocation: { type: "Point", coordinates }
+    });
+
+    // Prepare date key for today
+    const today = new Date();
+    const dateKey = new Date(today.setHours(0, 0, 0, 0)); // midnight timestamp
+
+    // Find or create today’s transporter history
+    let history = await TransporterHistory.findOne({ transporter: transporterId, date: dateKey });
+
+    if (!history) {
+      history = new TransporterHistory({
+        transporter: transporterId,
+        date: dateKey,
+        checkpoints: []
+      });
+    }
+
+    // Add new checkpoint
+    history.checkpoints.push({
+      location: { type: "Point", coordinates },
+      scannedAt: new Date()
+    });
+
+    await history.save();
+
+    // Respond with created records
+    res.status(201).json({
+      message: "Scan successful",
+      collection,
+      checkpoint: history.checkpoints[history.checkpoints.length - 1]
+    });
+
+  } catch (error) {
+    console.error("Scan error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export {
+    register,
+    login,
+    logout,
+    checkUser,
+    updateProfile,
+    scan
 };
