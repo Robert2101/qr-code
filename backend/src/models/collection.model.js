@@ -28,7 +28,7 @@ const collectionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Collected', 'In-Transit', 'Processed', 'Cancelled'],
+        enum: ['Collected', 'Completed'],
         default: 'Collected'
     },
     location: {
