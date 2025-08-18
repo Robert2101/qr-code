@@ -8,14 +8,15 @@ import {
     updateProfile,
     scan
 } from '../controllers/transporter.controller.js';
-import protectedRoute  from '../middlewares/user.middleware.js';
+
+import transporterMiddleware from "../middlewares/transporter.middleware.js";
 
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
-router.get("/check-user", protectedRoute, checkUser);
-router.put("/update-profile", protectedRoute, updateProfile);
+router.get("/check-user", transporterMiddleware, checkUser);
+router.put("/update-profile", transporterMiddleware, updateProfile);
 
-router.post("/scan", protectedRoute, scan);
+router.post("/scan", transporterMiddleware, scan);
 
 export default router;

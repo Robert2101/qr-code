@@ -20,6 +20,12 @@ const collectionSchema = new Schema({
         required: true,
         min: 0
     },
+    recycler: {
+        type: Schema.Types.ObjectId,
+        ref: 'Recycler',
+        required: true,
+        index: true
+    },
     
     wasteTypes: {
         wet: { type: Number, default: 0 },
