@@ -23,7 +23,6 @@ const collectionSchema = new Schema({
     recycler: {
         type: Schema.Types.ObjectId,
         ref: 'Recycler',
-        required: true,
         index: true
     },
     
