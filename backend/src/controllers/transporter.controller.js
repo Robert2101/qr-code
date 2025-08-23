@@ -217,70 +217,92 @@ const updateProfile = async (req, res) => {
     }
 };
 const scan = async (req, res) => {
-  try {
-    const transporterId = req.user.id; // from protected route
-    const { userId, weight, wasteTypes, coordinates } = req.body;
+    try {
+        console.log("🔍 Incoming scan request...");
+        console.log("➡️ Transporter ID (from token):", req.user?.id);
+        console.log("➡️ Request body:", req.body);
 
-    // Validate required fields
-    if (!userId || !weight || !coordinates || coordinates.length !== 2) {
-      return res.status(400).json({ message: "Required data missing or invalid" });
+        const transporterId = req.user.id; // from protected route
+        const { userId, weight, wasteTypes, coordinates } = req.body;
+
+        // Validate required fields
+        if (!userId || !weight || !coordinates || coordinates.length !== 2) {
+            console.warn("⚠️ Validation failed:", { userId, weight, coordinates });
+            return res.status(400).json({ message: "Required data missing or invalid" });
+        }
+
+        // Verify user exists
+        console.log("🔎 Checking if user exists:", userId);
+        const user = await User.findById(userId);
+        if (!user) {
+            console.warn("❌ User not found:", userId);
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Create Collection record
+        console.log("📦 Creating collection record...");
+        const collection = await Collection.create({
+            user: userId,
+            transporter: transporterId,
+            weight,
+            wasteTypes: wasteTypes || { wet: 0, dry: 0, hazardous: 0 },
+            location: {
+                type: "Point",
+                coordinates
+            }
+        });
+        console.log("✅ Collection created:", collection._id);
+
+        // Update transporter’s current location
+        console.log("🛠 Updating transporter location...");
+        await Transporter.findByIdAndUpdate(transporterId, {
+            currentLocation: { type: "Point", coordinates }
+        });
+        console.log("✅ Transporter location updated");
+
+        // Prepare date key for today
+        const today = new Date();
+        const dateKey = new Date(today.setHours(0, 0, 0, 0)); // midnight timestamp
+        console.log("📅 Date key:", dateKey);
+
+        // Find or create today’s transporter history
+        console.log("🔎 Fetching transporter history for today...");
+        let history = await TransporterHistory.findOne({ transporter: transporterId, date: dateKey });
+
+        if (!history) {
+            console.log("ℹ️ No history found for today, creating new...");
+            history = new TransporterHistory({
+                transporter: transporterId,
+                date: dateKey,
+                checkpoints: []
+            });
+        } else {
+            console.log("✅ History found:", history._id);
+        }
+
+        // Add new checkpoint
+        const checkpoint = {
+            location: { type: "Point", coordinates },
+            scannedAt: new Date()
+        };
+        console.log("📍 Adding checkpoint:", checkpoint);
+        history.checkpoints.push(checkpoint);
+
+        await history.save();
+        console.log("✅ History saved with new checkpoint");
+
+        // Respond with created records
+        console.log("🎉 Scan successful");
+        res.status(201).json({
+            message: "Scan successful",
+            collection,
+            checkpoint
+        });
+
+    } catch (error) {
+        console.error("💥 Scan error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
-
-    // Verify user exists
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Create Collection record
-    const collection = await Collection.create({
-      user: userId,
-      transporter: transporterId,
-      weight,
-      wasteTypes: wasteTypes || { wet: 0, dry: 0, hazardous: 0 },
-      location: {
-        type: "Point",
-        coordinates
-      }
-    });
-
-    // Update transporter’s current location
-    await Transporter.findByIdAndUpdate(transporterId, {
-      currentLocation: { type: "Point", coordinates }
-    });
-
-    // Prepare date key for today
-    const today = new Date();
-    const dateKey = new Date(today.setHours(0, 0, 0, 0)); // midnight timestamp
-
-    // Find or create today’s transporter history
-    let history = await TransporterHistory.findOne({ transporter: transporterId, date: dateKey });
-
-    if (!history) {
-      history = new TransporterHistory({
-        transporter: transporterId,
-        date: dateKey,
-        checkpoints: []
-      });
-    }
-
-    // Add new checkpoint
-    history.checkpoints.push({
-      location: { type: "Point", coordinates },
-      scannedAt: new Date()
-    });
-
-    await history.save();
-
-    // Respond with created records
-    res.status(201).json({
-      message: "Scan successful",
-      collection,
-      checkpoint: history.checkpoints[history.checkpoints.length - 1]
-    });
-
-  } catch (error) {
-    console.error("Scan error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
 };
 
 export {
