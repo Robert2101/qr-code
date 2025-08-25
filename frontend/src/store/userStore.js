@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { useAuthStore } from "./authStore"; // <-- adjust path if needed
-
+import toast from "react-hot-toast";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
@@ -27,12 +27,14 @@ export const useUserStore = create((set) => ({
             set((state) => ({
                 loading: { ...state.loading, profile: false },
             }));
+            toast.success("Profile updated successfully ✅"); 
             return res.data;
         } catch (err) {
             set((state) => ({
                 error: err.response?.data?.message || "Failed to update profile",
                 loading: { ...state.loading, profile: false },
             }));
+            toast.error(msg);
         }
     },
 

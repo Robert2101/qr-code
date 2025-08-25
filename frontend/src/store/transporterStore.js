@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axios from "axios";
+import toast from "react-hot-toast";   // ✅ toast added
 import { useAuthStore } from "./authStore";
 
 axios.defaults.withCredentials = true;
@@ -27,15 +28,17 @@ export const useTransporterStore = create((set) => ({
                 loading: { ...state.loading, scan: false },
             }));
 
+            toast.success("Collection scanned successfully ✅"); // 🎉 success toast
             return res.data;
         } catch (err) {
+            const msg = err.response?.data?.message || "Scan failed";
             set((state) => ({
-                error: err.response?.data?.message || "Scan failed",
+                error: msg,
                 loading: { ...state.loading, scan: false },
             }));
+            toast.error(msg); // ❌ error toast
         }
     },
-
 
     // 📝 Update transporter profile
     updateProfile: async (profileData) => {
@@ -49,12 +52,16 @@ export const useTransporterStore = create((set) => ({
             set((state) => ({
                 loading: { ...state.loading, profile: false },
             }));
+
+            toast.success("Profile updated successfully ✅"); // 🎉 success toast
             return res.data;
         } catch (err) {
+            const msg = err.response?.data?.message || "Failed to update profile";
             set((state) => ({
-                error: err.response?.data?.message || "Failed to update profile",
+                error: msg,
                 loading: { ...state.loading, profile: false },
             }));
+            toast.error(msg); // ❌ error toast
         }
     },
 }));
