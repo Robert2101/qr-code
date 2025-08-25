@@ -1,25 +1,14 @@
 import express from "express";
 
 const router = express.Router();
+import { register,login,logout,checkUser,updateProfile,scanQRCode } from "../controllers/recycler.controller.js";
+import recyclerMiddleware from "../middlewares/recycler.middleware.js";
+router.post("/register",register);
+router.post("/login", login);
+router.post("/logout", logout);
+router.get("/check-user",recyclerMiddleware,checkUser);
+router.put("/update-profile",recyclerMiddleware,updateProfile);
 
-router.post("/register", (req, res) => {
-    // Registration logic here
-});
-router.post("/login", (req, res) => {
-    // Login logic here
-});
-router.post("/logout", (req, res) => {
-    // Logout logic here
-});
-router.get("/check-user", (req, res) => {
-    // Check user logic here
-});
-router.put("/update-profile", (req, res) => {
-    // Update profile logic here
-});
-
-router.post("/scan", (req, res) => {
-    // Scan logic here
-});
+router.post("/scan", recyclerMiddleware, scanQRCode);
 
 export default router;

@@ -29,4 +29,5 @@ const recyclerSchema = new Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Recycler', recyclerSchema);
+const Recycler = mongoose.model('Recycler', recyclerSchema);
+export default Recycler;

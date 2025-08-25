@@ -305,11 +305,35 @@ const scan = async (req, res) => {
     }
 };
 
+const showQr = async (req, res) => {
+    try {
+        const transporterId = req.user.id;
+        if (!transporterId) {
+            return res.status(400).json({ message: "Transporter ID missing" });
+        }
+
+        const transporter = await Transporter.findById(transporterId);
+        if (!transporter || !transporter.qrCodeUrl) {
+            return res.status(404).json({ message: "QR code not found" });
+        }
+
+        res.status(200).json({
+            message: "QR code retrieved",
+            qrCodeUrl: transporter.qrCodeUrl
+        });
+
+    } catch (error) {
+        console.error("Show QR code error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
 export {
     register,
     login,
     logout,
     checkUser,
     updateProfile,
-    scan
+    scan,
+    showQr
 };

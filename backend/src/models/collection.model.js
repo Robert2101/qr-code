@@ -33,7 +33,7 @@ const collectionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Collected', 'Completed'],
+        enum: ['Collected', 'Trash Dumped', 'Completed'],
         default: 'Collected'
     },
     location: {

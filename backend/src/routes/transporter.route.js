@@ -6,7 +6,8 @@ import {
     logout,
     checkUser,
     updateProfile,
-    scan
+    scan,
+    showQr
 } from '../controllers/transporter.controller.js';
 
 import transporterMiddleware from "../middlewares/transporter.middleware.js";
@@ -17,6 +18,7 @@ router.post("/logout", logout);
 router.get("/check-user", transporterMiddleware, checkUser);
 router.put("/update-profile", transporterMiddleware, updateProfile);
 
+router.get("/qr", showQr);
 router.post("/scan", transporterMiddleware, scan);
 
 export default router;
