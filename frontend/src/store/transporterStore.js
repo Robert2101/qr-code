@@ -1,18 +1,20 @@
 import { create } from "zustand";
 import axios from "axios";
-import toast from "react-hot-toast";   // ✅ toast added
+import toast from "react-hot-toast";
 import { useAuthStore } from "./authStore";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const TRANSPORTER_API_URL = `${API_URL}/api/transporter`;
 
 export const useTransporterStore = create((set) => ({
     collections: [],
+    qrCodeUrl: null, // New state for the QR code
     loading: {
         scan: false,
         collections: false,
-        history: false,
         profile: false,
+        qrCode: false, // New loading state for QR code
     },
     error: null,
 
@@ -20,15 +22,14 @@ export const useTransporterStore = create((set) => ({
     scan: async (scanData) => {
         try {
             set((state) => ({ loading: { ...state.loading, scan: true }, error: null }));
-            const res = await axios.post(`${API_URL}/api/transporter/scan`, scanData);
+            const res = await axios.post(`${TRANSPORTER_API_URL}/scan`, scanData);
 
-            // add latest collection at top
             set((state) => ({
                 collections: [res.data.collection, ...state.collections],
                 loading: { ...state.loading, scan: false },
             }));
 
-            toast.success("Collection scanned successfully ✅"); // 🎉 success toast
+            toast.success("Collection scanned successfully ✅");
             return res.data;
         } catch (err) {
             const msg = err.response?.data?.message || "Scan failed";
@@ -36,7 +37,7 @@ export const useTransporterStore = create((set) => ({
                 error: msg,
                 loading: { ...state.loading, scan: false },
             }));
-            toast.error(msg); // ❌ error toast
+            toast.error(msg);
         }
     },
 
@@ -44,7 +45,7 @@ export const useTransporterStore = create((set) => ({
     updateProfile: async (profileData) => {
         try {
             set((state) => ({ loading: { ...state.loading, profile: true }, error: null }));
-            const res = await axios.put(`${API_URL}/api/transporter/update-profile`, profileData);
+            const res = await axios.put(`${TRANSPORTER_API_URL}/update-profile`, profileData);
 
             // keep auth store in sync
             useAuthStore.setState({ currentUser: res.data.transporter });
@@ -53,7 +54,7 @@ export const useTransporterStore = create((set) => ({
                 loading: { ...state.loading, profile: false },
             }));
 
-            toast.success("Profile updated successfully ✅"); // 🎉 success toast
+            toast.success("Profile updated successfully ✅");
             return res.data;
         } catch (err) {
             const msg = err.response?.data?.message || "Failed to update profile";
@@ -61,7 +62,26 @@ export const useTransporterStore = create((set) => ({
                 error: msg,
                 loading: { ...state.loading, profile: false },
             }));
-            toast.error(msg); // ❌ error toast
+            toast.error(msg);
         }
     },
+
+    // 📷 Get Transporter QR Code
+    getQrCode: async () => {
+        try {
+            set((state) => ({ loading: { ...state.loading, qrCode: true }, error: null }));
+            const res = await axios.get(`${TRANSPORTER_API_URL}/qr`);
+            set((state) => ({
+                qrCodeUrl: res.data.qrCodeUrl,
+                loading: { ...state.loading, qrCode: false },
+            }));
+        } catch (err) {
+            const msg = err.response?.data?.message || "Failed to fetch QR code";
+            set((state) => ({
+                error: msg,
+                loading: { ...state.loading, qrCode: false },
+            }));
+            toast.error(msg);
+        }
+    }
 }));

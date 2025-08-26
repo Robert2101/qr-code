@@ -61,8 +61,9 @@ function App() {
               role === "user" ? <Dashboard /> : <Navigate to="/" replace />
             }
           />
+          {/* FIX: Added '/*' to the path to allow for nested routes */}
           <Route
-            path="/transporter-dashboard"
+            path="/transporter-dashboard/*"
             element={
               role === "transporter" ? <TransporterDashboard /> : <Navigate to="/" replace />
             }

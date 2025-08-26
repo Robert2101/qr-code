@@ -18,7 +18,7 @@ router.post("/logout", logout);
 router.get("/check-user", transporterMiddleware, checkUser);
 router.put("/update-profile", transporterMiddleware, updateProfile);
 
-router.get("/qr", showQr);
+router.get("/qr", transporterMiddleware, showQr);
 router.post("/scan", transporterMiddleware, scan);
 
 export default router;
