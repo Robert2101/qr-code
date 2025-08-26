@@ -12,7 +12,8 @@ import {
     updateTransporterById,
     getAllRecyclers,
     createRecycler,
-    login
+    login,
+    checkUser
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ const router = express.Router();
 
 router.post('/login', login);
 router.use(adminMiddleware);
+router.get('/check-user', checkUser);
 
 // ## Dashboard Routes ##
 router.get('/stats', getDashboardStats);

@@ -8,8 +8,6 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import TransporterDashboard from "./pages/TransporterDashboard";
-
-import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 
 import { Toaster } from "react-hot-toast";
@@ -19,84 +17,81 @@ function App() {
   const { currentUser, role, loading: authLoading, checkAuth } = useAuthStore();
 
   // State from the new admin store
-  const { admin, loading: adminLoading } = useAdminStore();
+  const { admin, isAuthChecked: isAdminAuthChecked, checkAuth: checkAdminAuth } = useAdminStore();
 
   useEffect(() => {
-    checkAuth(); // Check user/transporter sessions
-    // Admin session is restored by persist middleware automatically
-  }, [checkAuth]);
+    // Check sessions for all roles on initial load
+    checkAuth();
+    checkAdminAuth();
+  }, [checkAuth, checkAdminAuth]);
 
-  // Show a loading screen until both stores are ready
-  if (authLoading || adminLoading) {
-    return <h2>Loading...</h2>;
+  // Show a loading screen until auth status for all roles is determined
+  if (authLoading || !isAdminAuthChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <h2 className="text-2xl font-semibold">Loading...</h2>
+      </div>
+    );
   }
 
+  // --- ROUTING LOGIC ---
+
+  // 1. If an admin is logged in, only render admin-specific routes.
+  if (admin) {
+    return (
+      <>
+        <Routes>
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          {/* Any other path redirects to the admin dashboard */}
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+        </Routes>
+        <Toaster position="top-center" reverseOrder={false} />
+      </>
+    );
+  }
+
+  // 2. If a regular user or transporter is logged in, render their routes.
+  if (currentUser) {
+    return (
+      <>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              role === "user" ? <Dashboard /> : <Navigate to="/" replace />
+            }
+          />
+          <Route
+            path="/transporter-dashboard"
+            element={
+              role === "transporter" ? <TransporterDashboard /> : <Navigate to="/" replace />
+            }
+          />
+          {/* Redirect from root or any other invalid path to the correct dashboard */}
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={role === "user" ? "/dashboard" : "/transporter-dashboard"}
+                replace
+              />
+            }
+          />
+        </Routes>
+        <Toaster position="top-center" reverseOrder={false} />
+      </>
+    );
+  }
+
+  // 3. If no one is logged in, only render public routes.
   return (
     <>
       <Routes>
-        {/* =================== */}
-        {/* Admin Routes */}
-        {/* =================== */}
-        <Route
-          path="/admin/login"
-          element={!admin ? <AdminLogin /> : <Navigate to="/admin/dashboard" replace />}
-        />
-        <Route
-          path="/admin/*"
-          element={admin ? <AdminDashboard /> : <Navigate to="/admin/login" replace />}
-        />
-
-        {/* =================== */}
-        {/* Public & User/Transporter Routes */}
-        {/* =================== */}
-
-        {/* Root Path Logic */}
-        <Route
-          path="/"
-          element={
-            admin ? (
-              <Navigate to="/admin/dashboard" replace />
-            ) : !currentUser ? (
-              <Home />
-            ) : role === "user" ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/transporter-dashboard" replace />
-            )
-          }
-        />
-
-        {/* Public Routes */}
-        <Route
-          path="/register"
-          element={!currentUser && !admin ? <Register /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/login"
-          element={!currentUser && !admin ? <Login /> : <Navigate to="/" replace />}
-        />
-
-        {/* Protected User/Transporter Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            currentUser && role === "user" ? (
-              <Dashboard />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/transporter-dashboard"
-          element={
-            currentUser && role === "transporter" ? (
-              <TransporterDashboard />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        {/* Any other path for a logged-out user redirects to the home page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster position="top-center" reverseOrder={false} />
     </>

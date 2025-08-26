@@ -7,6 +7,19 @@ import Admin from '../models/admin.model.js';
 import { generateToken } from '../utils/jwt.js'
 
 // ## Dashboard Controller ##
+export const checkUser = async (req, res) => {
+    try {
+        const user = await Admin.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ user });
+    } catch (error) {
+        console.error("Error in checkUser: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
