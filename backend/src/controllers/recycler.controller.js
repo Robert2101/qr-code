@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwt.js";
 import Recycler from "../models/recycler.model.js";
 import Collection from "../models/collection.model.js";
+import Transporter from "../models/transporter.model.js"
 const register = async (req, res) => {
     try {
         const { name, email, password, address, city, state, zipCode } = req.body;
@@ -157,64 +158,77 @@ const updateProfile = async (req, res) => {
     }
 };
 
-
 const scanQRCode = async (req, res) => {
     try {
-        const { scannedTransporterId } = req.body;
-        const recyclerId = req.user._id; // The logged-in recycler from middleware
-        const recyclerName = req.user.name;
+        console.log("📌 Incoming scan request body:", req.body);
+        console.log("📌 Incoming user from middleware:", req.user);
 
-        // 1. Validate input
+        const { scannedTransporterId } = req.body;
+        const recyclerId = req.user?._id;
+        const recyclerName = req.user?.name;
+
+        if (!recyclerId) {
+            console.warn("⚠️ No recyclerId found in req.user");
+            return res.status(401).json({ message: "Unauthorized: Recycler not found in request." });
+        }
+
         if (!scannedTransporterId) {
+            console.warn("⚠️ scannedTransporterId missing in request body");
             return res.status(400).json({ message: "Scanned QR code is invalid or empty." });
         }
 
-        // 2. Validate Transporter
+        console.log(`🔍 Checking transporter with ID: ${scannedTransporterId}`);
         const transporterExists = await Transporter.findById(scannedTransporterId);
+
         if (!transporterExists) {
+            console.warn(`❌ No transporter found with ID: ${scannedTransporterId}`);
             return res.status(404).json({ message: "Transporter not found. The QR code may be invalid." });
         }
 
-        console.log(`✅ Recycler ${recyclerName} is claiming collections from Transporter ${transporterExists.name}`);
+        console.log(`✅ Recycler ${recyclerName} (${recyclerId}) is claiming collections from Transporter ${transporterExists.name} (${transporterExists._id})`);
 
-        // 3. Find all collections that are ready to be claimed by the recycler.
+        console.log("🔍 Searching for collections with status 'Collected' and no recycler...");
         const collectionsToClaim = await Collection.find({
             transporter: scannedTransporterId,
             status: 'Collected',
-            recycler: { $exists: false } // Ensures we don't overwrite already assigned collections
+            recycler: { $exists: false }
         });
 
-        // 4. If no collections are found, respond immediately.
+        console.log(`📊 Found ${collectionsToClaim.length} collections to claim.`);
+
         if (collectionsToClaim.length === 0) {
-            console.log(`ℹ️ No 'Collected' items found for Transporter ${transporterExists.name} to be claimed.`);
+            console.log(`ℹ️ No collections ready to claim for transporter ${transporterExists.name}`);
             return res.status(200).json({
                 message: "No new collected items were available to be claimed from this transporter.",
                 claimedCount: 0
             });
         }
 
-        // 5. Calculate the estimated weights from the found collections.
         let estimatedTotalWeight = 0;
         const estimatedCategoricalWeights = { wet: 0, dry: 0, hazardous: 0 };
         const collectionIdsToUpdate = [];
 
         for (const collection of collectionsToClaim) {
+            console.log(`📦 Processing collection ${collection._id}, weight: ${collection.weight}, wasteTypes:`, collection.wasteTypes);
             estimatedTotalWeight += collection.weight || 0;
-            estimatedCategoricalWeights.wet += collection.wasteTypes.wet || 0;
-            estimatedCategoricalWeights.dry += collection.wasteTypes.dry || 0;
-            estimatedCategoricalWeights.hazardous += collection.wasteTypes.hazardous || 0;
+            estimatedCategoricalWeights.wet += collection.wasteTypes?.wet || 0;
+            estimatedCategoricalWeights.dry += collection.wasteTypes?.dry || 0;
+            estimatedCategoricalWeights.hazardous += collection.wasteTypes?.hazardous || 0;
             collectionIdsToUpdate.push(collection._id);
         }
 
-        // 6. Atomically update all the found collections with the recycler's ID.
-        await Collection.updateMany(
-            { _id: { $in: collectionIdsToUpdate } },
-            { $set: { recycler: recyclerId } }
-        );
+        console.log("📌 Total weight:", estimatedTotalWeight);
+        console.log("📌 Categorical weights:", estimatedCategoricalWeights);
+        console.log("📌 Collection IDs to update:", collectionIdsToUpdate);
 
-        console.log(`✅ Recycler ${recyclerName} claimed ${collectionsToClaim.length} collections from Transporter ${transporterExists.name}.`);
+        if (collectionIdsToUpdate.length > 0) {
+            const updateResult = await Collection.updateMany(
+                { _id: { $in: collectionIdsToUpdate } },
+                { $set: { recycler: recyclerId, status: "Claimed" } }
+            );
+            console.log(`✅ Updated ${updateResult.modifiedCount} collections to Claimed for recycler ${recyclerName}`);
+        }
 
-        // 7. Send the final, detailed response.
         res.status(200).json({
             message: `Successfully claimed ${collectionsToClaim.length} collections from ${transporterExists.name}.`,
             claimedCount: collectionsToClaim.length,
@@ -224,8 +238,10 @@ const scanQRCode = async (req, res) => {
 
     } catch (error) {
         console.error("💥 QR Scan processing error:", error);
-        res.status(500).json({ message: "Server error while processing the scan." });
+        res.status(500).json({ message: "Server error while processing the scan.", error: error.message });
     }
 };
+
+
 
 export { register, login, logout, checkUser, updateProfile, scanQRCode };
