@@ -3,8 +3,54 @@ import User from '../models/user.model.js';
 import Transporter from '../models/transporter.model.js';
 import Recycler from '../models/recycler.model.js';
 import Collection from '../models/collection.model.js';
+import Admin from '../models/admin.model.js';
+import { generateToken } from '../utils/jwt.js'
 
 // ## Dashboard Controller ##
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        console.log("📥 Login request received:", { email, password }); // log raw input (⚠️ remove in production)
+
+        if (!email || !password) {
+            console.warn("⚠️ Missing email or password");
+            return res.status(400).json({ message: "Please enter email and password" });
+        }
+
+        const user = await Admin.findOne({ email });
+        console.log("🔍 User lookup result:", user ? user.email : "Not found");
+
+        if (!user) {
+            console.warn("❌ Login failed: User not found for email:", email);
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log("🔑 Password match:", isMatch);
+
+        if (!isMatch) {
+            console.warn("❌ Login failed: Password mismatch for email:", email);
+            return res.status(401).json({ message: "Invalid email or password" });
+        }
+
+        // Generate token
+        generateToken(user._id, res);
+        console.log("✅ Token generated for user:", user._id);
+
+        const { password: pwd, ...userData } = user.toObject();
+        console.log("✅ Login successful. User data:", userData);
+
+        res.status(200).json({
+            message: "Login successful",
+            user: userData
+        });
+
+    } catch (error) {
+        console.error("💥 Login error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 
 /**
  * @description Fetches summary statistics for the admin dashboard.

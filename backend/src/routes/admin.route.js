@@ -11,13 +11,14 @@ import {
     createTransporter,
     updateTransporterById,
     getAllRecyclers,
-    createRecycler
+    createRecycler,
+    login
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
 
-// This single line applies the adminMiddleware to all subsequent routes in this file.
-// It ensures that only an authenticated admin can access these endpoints.
+
+router.post('/login', login);
 router.use(adminMiddleware);
 
 // ## Dashboard Routes ##
