@@ -5,7 +5,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { authRoutes } from "./routes/auth.route.js";
 import transporterRoutes from "./routes/transporter.route.js";
-import recyclerRoutes from "./routes/recycler.route.js"
+import recyclerRoutes from "./routes/recycler.route.js";
+import adminRoutes from "./routes/admin.route.js"
 
 dotenv.config();
 const app = express();
@@ -25,6 +26,7 @@ const PORT = process.env.PORT || 5001;
 app.use("/api/auth", authRoutes);
 app.use("/api/transporter", transporterRoutes);
 app.use("/api/recycler", recyclerRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on ${PORT}`);

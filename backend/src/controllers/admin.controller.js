@@ -10,14 +10,15 @@ import { generateToken } from '../utils/jwt.js'
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("📥 Login request received:", { email, password }); // log raw input (⚠️ remove in production)
+        console.log("📥 Login request received: in admin.controller.js", { email, password }); // log raw input (⚠️ remove in production)
 
         if (!email || !password) {
             console.warn("⚠️ Missing email or password");
             return res.status(400).json({ message: "Please enter email and password" });
         }
 
-        const user = await Admin.findOne({ email });
+        // The fix is to add .select('+password')
+        const user = await Admin.findOne({ email }).select('+password');
         console.log("🔍 User lookup result:", user ? user.email : "Not found");
 
         if (!user) {
