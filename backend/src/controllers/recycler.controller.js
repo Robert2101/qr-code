@@ -224,7 +224,7 @@ const scanQRCode = async (req, res) => {
         if (collectionIdsToUpdate.length > 0) {
             const updateResult = await Collection.updateMany(
                 { _id: { $in: collectionIdsToUpdate } },
-                { $set: { recycler: recyclerId, status: "Claimed" } }
+                { $set: { recycler: recyclerId, status: "Trash Dumped" } }
             );
             console.log(`✅ Updated ${updateResult.modifiedCount} collections to Claimed for recycler ${recyclerName}`);
         }
@@ -242,6 +242,29 @@ const scanQRCode = async (req, res) => {
     }
 };
 
+const getRecyclerHistory = async (req, res) => {
+    try {
+        const recyclerId = req.user._id;
+        console.log(`🔍 Fetching history for recycler ID: ${recyclerId}`);
 
+        // Find all collections assigned to this recycler
+        // Populate user and transporter details to show their names
+        const history = await Collection.find({ recycler: recyclerId })
+            .populate('user', 'name')
+            .populate('transporter', 'name')
+            .sort({ updatedAt: -1 }); // Show most recent first
 
-export { register, login, logout, checkUser, updateProfile, scanQRCode };
+        if (!history) {
+            return res.status(200).json({ history: [] });
+        }
+
+        console.log(`✅ Found ${history.length} history records for recycler ${req.user.name}.`);
+        res.status(200).json({ history });
+
+    } catch (error) {
+        console.error("💥 Error fetching recycler history:", error);
+        res.status(500).json({ message: "Server error while fetching history." });
+    }
+};
+
+export { register, login, logout, checkUser, updateProfile, scanQRCode, getRecyclerHistory };

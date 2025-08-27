@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/authStore.js";
-import useAdminStore from "../store/adminStore.js"; // Import the admin store
+import useAdminStore from "../store/adminStore.js";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -9,8 +9,8 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("user"); // Default role
 
-    // Get login functions from both stores
-    const { loginUser, loginTransporter } = useAuthStore();
+    // Get login functions from the stores
+    const { loginUser, loginTransporter, loginRecycler } = useAuthStore();
     const { login: loginAdmin } = useAdminStore();
 
     const navigate = useNavigate();
@@ -20,17 +20,21 @@ export default function Login() {
         // Handle login based on the selected role
         if (role === "user") {
             await loginUser({ email, password });
+            // Navigation is handled by App.jsx, but we can push it here for faster UX
             navigate("/dashboard");
         } else if (role === "transporter") {
             await loginTransporter({ email, password });
             navigate("/transporter-dashboard");
+        } else if (role === "recycler") { // <-- ADDED RECYCLER LOGIC
+            await loginRecycler({ email, password });
+            navigate("/recycler-dashboard");
         } else if (role === "admin") {
             await loginAdmin({ email, password });
             navigate("/admin/dashboard");
         }
     };
 
-    // Animation variants (no changes here)
+    // Animation variants
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -92,14 +96,14 @@ export default function Login() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.7 }}
                         >
-                            <h1 className="text-3xl md:text-4xl font-bold mb-4">Welcome to EcoTrack</h1>
+                            <h1 className="text-3xl md:text-4xl font-bold mb-4">Welcome to EcoChain</h1>
                             <p className="text-lg mb-6">Smart Waste Management System</p>
                             <div className="space-y-4 mt-8">
                                 {[
                                     { icon: "🔍", text: "QR Code Validation" },
                                     { icon: "🗺️", text: "Real-time Tracking" },
                                     { icon: "📊", text: "Advanced Analytics" },
-                                    { icon: "♻", text: "Recycling Management" }
+                                    { icon: "♻️", text: "Recycling Management" }
                                 ].map((item, index) => (
                                     <motion.div
                                         key={index}
@@ -138,23 +142,24 @@ export default function Login() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     I am a
                                 </label>
-                                <div className="flex space-x-2 sm:space-x-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {[
                                         { value: "user", label: "User", icon: "👤" },
                                         { value: "transporter", label: "Transporter", icon: "🚚" },
-                                        { value: "admin", label: "Admin", icon: "⚙️" } // Added Admin role
+                                        { value: "recycler", label: "Recycler", icon: "♻️" }, // <-- ADDED RECYCLER
+                                        { value: "admin", label: "Admin", icon: "⚙️" }
                                     ].map((option) => (
                                         <button
                                             key={option.value}
                                             type="button"
                                             onClick={() => setRole(option.value)}
-                                            className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${role === option.value
+                                            className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${role === option.value
                                                 ? "border-green-500 bg-green-50 text-green-700"
                                                 : "border-gray-200 text-gray-500 hover:border-green-300"
                                                 }`}
                                         >
-                                            <span className="text-2xl mb-2">{option.icon}</span>
-                                            <span className="font-medium text-sm sm:text-base">{option.label}</span>
+                                            <span className="text-2xl mb-1">{option.icon}</span>
+                                            <span className="font-medium text-sm">{option.label}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -219,7 +224,7 @@ export default function Login() {
                                     <div className="w-full border-t border-gray-300"></div>
                                 </div>
                                 <div className="relative flex justify-center text-sm">
-                                    <span className="px-2 bg-white text-gray-500">New to EcoTrack?</span>
+                                    <span className="px-2 bg-white text-gray-500">New to EcoChain?</span>
                                 </div>
                             </motion.div>
                             <motion.div variants={itemVariants} className="text-center">

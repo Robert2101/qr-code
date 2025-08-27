@@ -56,12 +56,29 @@ export const useAuthStore = create((set) => ({
         }
     },
 
-    // --- Logout ---
+    // --- Recycler ---
+    loginRecycler: async (data) => {
+        set({ loading: true });
+        try {
+            const res = await axios.post(`${API_URL}/api/recycler/login`, data);
+            set({ currentUser: res.data.recycler, role: "recycler", loading: false });
+            toast.success("Recycler logged in successfully!");
+        } catch (error) {
+            console.error("Login recycler failed:", error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "Recycler login failed!");
+            set({ loading: false });
+        }
+    },
+
+    // --- Logout (Updated) ---
     logout: async () => {
         try {
             set((state) => {
                 if (state.role === "user") axios.post(`${API_URL}/api/auth/logout`);
                 if (state.role === "transporter") axios.post(`${API_URL}/api/transporter/logout`);
+                // --- Recycler ---
+                if (state.role === "recycler") axios.post(`${API_URL}/api/recycler/logout`);
+
                 toast.success("Logged out successfully!");
                 return { currentUser: null, role: null };
             });
@@ -71,17 +88,27 @@ export const useAuthStore = create((set) => ({
         }
     },
 
-    // --- Check auth ---
+    // --- Check auth (Updated) ---
     checkAuth: async () => {
         try {
+            // Check for User
             const userRes = await axios.get(`${API_URL}/api/auth/check-user`);
-            set({ currentUser: userRes.data.user, role: "user", loading: false });
+            set({ currentUser: userRes.data, role: "user", loading: false });
         } catch {
             try {
+                // Check for Transporter
                 const transRes = await axios.get(`${API_URL}/api/transporter/check-user`);
-                set({ currentUser: transRes.data.transporter, role: "transporter", loading: false });
+                set({ currentUser: transRes.data, role: "transporter", loading: false });
             } catch {
-                set({ currentUser: null, role: null, loading: false });
+                try {
+                    // --- Recycler ---
+                    // Check for Recycler
+                    const recyclerRes = await axios.get(`${API_URL}/api/recycler/check-user`);
+                    set({ currentUser: recyclerRes.data, role: "recycler", loading: false });
+                } catch {
+                    // No one is logged in
+                    set({ currentUser: null, role: null, loading: false });
+                }
             }
         }
     },

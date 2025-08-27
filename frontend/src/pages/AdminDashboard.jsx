@@ -36,7 +36,7 @@ export default function AdminDashboard() {
     );
 }
 
-// --- Sidebar Component ---
+// --- Sidebar, Header, DashboardHome, ManageUsers, ManageTransporters (Components are unchanged) ---
 const Sidebar = ({ isSidebarOpen }) => {
     const { logout } = useAdminStore();
     const navigate = useNavigate();
@@ -79,8 +79,6 @@ const Sidebar = ({ isSidebarOpen }) => {
         </AnimatePresence>
     );
 };
-
-// --- Header Component ---
 const Header = ({ toggleSidebar }) => {
     const { admin } = useAdminStore();
     return (
@@ -96,8 +94,6 @@ const Header = ({ toggleSidebar }) => {
         </header>
     );
 };
-
-// --- Dashboard Home (Stats) ---
 const DashboardHome = () => {
     const { admin, stats, getDashboardStats, loading } = useAdminStore();
 
@@ -138,8 +134,6 @@ const DashboardHome = () => {
         </div>
     );
 };
-
-// --- Manage Users Page ---
 const ManageUsers = () => {
     const { admin, users, getAllUsers, loading, updateUserById } = useAdminStore();
     const [isModalOpen, setModalOpen] = useState(false);
@@ -200,9 +194,6 @@ const ManageUsers = () => {
         </div>
     );
 };
-
-
-// --- Manage Transporters Page ---
 const ManageTransporters = () => {
     const { admin, transporters, getAllTransporters, loading, createTransporter, updateTransporterById } = useAdminStore();
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -276,67 +267,6 @@ const ManageTransporters = () => {
         </div>
     );
 };
-
-// --- Manage Recyclers Page ---
-const ManageRecyclers = () => {
-    const { admin, recyclers, getAllRecyclers, loading, createRecycler } = useAdminStore();
-    const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-
-    useEffect(() => {
-        if (admin) {
-            getAllRecyclers();
-        }
-    }, [admin, getAllRecyclers]);
-
-    const handleCreate = async (data) => {
-        await createRecycler(data);
-        setCreateModalOpen(false);
-    };
-
-    const formatLocation = (location) => {
-        if (!location || typeof location !== 'object') return location || 'N/A';
-        return [location.street, location.city, location.state, location.pinCode].filter(Boolean).join(', ');
-    };
-
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-md">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Manage Recyclers</h2>
-                <button onClick={() => setCreateModalOpen(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
-                    <PlusIcon /> Add Recycler
-                </button>
-            </div>
-            {loading ? <p>Loading recyclers...</p> : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {recyclers.map(r => (
-                                <tr key={r._id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">{r.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{r.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{formatLocation(r.location)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-            {isCreateModalOpen && <CreateRecyclerModal onCreate={handleCreate} onClose={() => setCreateModalOpen(false)} />}
-        </div>
-    );
-};
-
-
-// --- MODAL & FORM COMPONENTS ---
-
-// Generic Modal Wrapper
 const Modal = ({ children, onClose, title }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center" onClick={onClose}>
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -348,8 +278,6 @@ const Modal = ({ children, onClose, title }) => (
         </div>
     </div>
 );
-
-// Update User Modal
 const UpdateUserModal = ({ user, onUpdate, onClose }) => {
     const [name, setName] = useState(user.name);
     const [address, setAddress] = useState({
@@ -391,8 +319,6 @@ const UpdateUserModal = ({ user, onUpdate, onClose }) => {
         </Modal>
     );
 };
-
-// Create Transporter Modal
 const CreateTransporterModal = ({ onCreate, onClose }) => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '', model: '', licensePlate: '' });
 
@@ -413,7 +339,6 @@ const CreateTransporterModal = ({ onCreate, onClose }) => {
                 <input type="email" name="email" placeholder="Email" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
                 <input type="password" name="password" placeholder="Password" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
                 <input type="text" name="model" placeholder="Vehicle Model" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" />
-                {/* FIX: Added the 'required' attribute to match the backend schema */}
                 <input type="text" name="licensePlate" placeholder="License Plate" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
                 <div className="flex justify-end space-x-2">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
@@ -423,8 +348,6 @@ const CreateTransporterModal = ({ onCreate, onClose }) => {
         </Modal>
     );
 };
-
-// Update Transporter Modal
 const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
     const [name, setName] = useState(transporter.name);
     const [email, setEmail] = useState(transporter.email);
@@ -470,26 +393,116 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
     );
 };
 
-// Create Recycler Modal
-const CreateRecyclerModal = ({ onCreate, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', location: '' });
 
+// --- Manage Recyclers Page (with corrected formatLocation) ---
+const ManageRecyclers = () => {
+    const { admin, recyclers, getAllRecyclers, loading, createRecycler } = useAdminStore();
+    const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (admin) {
+            getAllRecyclers();
+        }
+    }, [admin, getAllRecyclers]);
+
+    const handleCreate = async (data) => {
+        await createRecycler(data);
+        setCreateModalOpen(false);
+    };
+
+    const formatLocation = (location) => {
+        if (!location || typeof location !== 'object') return location || 'N/A';
+        // Corrected to use zipCode as per your schema
+        return [location.address, location.city, location.state, location.zipCode].filter(Boolean).join(', ');
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Manage Recyclers</h2>
+                <button onClick={() => setCreateModalOpen(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
+                    <PlusIcon /> Add Recycler
+                </button>
+            </div>
+            {loading ? <p>Loading recyclers...</p> : (
+                <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {recyclers.map(r => (
+                                <tr key={r._id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">{r.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{r.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{formatLocation(r.location)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {isCreateModalOpen && <CreateRecyclerModal onCreate={handleCreate} onClose={() => setCreateModalOpen(false)} />}
+        </div>
+    );
+};
+
+
+// --- Create Recycler Modal (FIXED) ---
+const CreateRecyclerModal = ({ onCreate, onClose }) => {
+    // State to hold all form fields, with location as a nested object
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        password: '',
+        address: '',
+        city: '',
+        state: '',
+        zipCode: ''
+    });
+
+    // A single handler for all input fields
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Handle form submission
     const handleSubmit = (e) => {
         e.preventDefault();
-        onCreate(formData);
+        // Destructure the form data
+        const { name, email, password, address, city, state, zipCode } = formData;
+        // Create the final data object with the nested location object
+        const dataToSubmit = {
+            name,
+            email,
+            password,
+            location: {
+                address,
+                city,
+                state,
+                zipCode
+            }
+        };
+        onCreate(dataToSubmit);
     };
 
     return (
         <Modal onClose={onClose} title="Create New Recycler">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <input type="text" name="name" placeholder="Name" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
-                <input type="email" name="email" placeholder="Email" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
-                <input type="password" name="password" placeholder="Password" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
-                <input type="text" name="location" placeholder="Location (e.g., City, State)" onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" />
+                <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+                <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+
+                {/* --- LOCATION FIELDS --- */}
+                <input type="text" name="address" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+                <input type="text" name="city" placeholder="City" value={formData.city} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+                <input type="text" name="state" placeholder="State" value={formData.state} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+                <input type="text" name="zipCode" placeholder="Zip Code" value={formData.zipCode} onChange={handleChange} className="w-full border border-gray-300 rounded-md py-2 px-3" required />
+
                 <div className="flex justify-end space-x-2">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Create Recycler</button>
