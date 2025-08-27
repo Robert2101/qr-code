@@ -236,7 +236,126 @@ export const updateTransporterById = async (req, res) => {
 };
 
 
+/**
+ * @description Gets all collections for a specific transporter.
+ * @route GET /api/admin/transporters/:id/collections
+ */
+export const getTransporterCollections = async (req, res) => {
+    try {
+        const transporterId = req.params.id;
+        
+        // Verify transporter exists
+        const transporter = await Transporter.findById(transporterId).select('-password');
+        if (!transporter) {
+            return res.status(404).json({ error: "Transporter not found" });
+        }
+        
+        // Get all collections for this transporter
+        const collections = await Collection.find({ transporter: transporterId })
+            .populate('user', 'name')
+            .populate('recycler', 'name')
+            .sort({ createdAt: -1 });
+            
+        // Calculate total waste collected
+        const totalWeight = collections.reduce((sum, collection) => sum + collection.weight, 0);
+        
+        // Calculate waste by type
+        const wasteByType = collections.reduce((acc, collection) => {
+            acc.wet += collection.wasteTypes?.wet || 0;
+            acc.dry += collection.wasteTypes?.dry || 0;
+            acc.hazardous += collection.wasteTypes?.hazardous || 0;
+            return acc;
+        }, { wet: 0, dry: 0, hazardous: 0 });
+        
+        // Calculate waste given to recyclers
+        const wasteToRecyclers = collections.reduce((sum, collection) => {
+            if (collection.recycler) {
+                return sum + collection.weight;
+            }
+            return sum;
+        }, 0);
+        
+        res.status(200).json({
+            transporter,
+            collections,
+            stats: {
+                totalCollections: collections.length,
+                totalWeight,
+                wasteByType,
+                wasteToRecyclers,
+                pendingWaste: totalWeight - wasteToRecyclers
+            }
+        });
+    } catch (error) {
+        console.error("Error in getTransporterCollections: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 // ## Recycler Management Controllers ##
+
+/**
+ * @description Retrieves collections for a specific recycler with statistics.
+ * @route GET /api/admin/recyclers/:id/collections
+ */
+export const getRecyclerCollections = async (req, res) => {
+    try {
+        const recyclerId = req.params.id;
+        
+        // Get recycler details
+        const recycler = await Recycler.findById(recyclerId).select('-password');
+        if (!recycler) {
+            return res.status(404).json({ error: "Recycler not found" });
+        }
+        
+        // Get all collections for this recycler
+        const collections = await Collection.find({ recycler: recyclerId })
+            .populate('user', 'name')
+            .populate('transporter', 'name vehicleNumber')
+            .sort({ createdAt: -1 });
+            
+        // Calculate total waste collected
+        const totalWeight = collections.reduce((sum, collection) => sum + collection.weight, 0);
+        
+        // Calculate waste by type
+        const wasteByType = collections.reduce((acc, collection) => {
+            acc.wet += collection.wasteTypes?.wet || 0;
+            acc.dry += collection.wasteTypes?.dry || 0;
+            acc.hazardous += collection.wasteTypes?.hazardous || 0;
+            return acc;
+        }, { wet: 0, dry: 0, hazardous: 0 });
+        
+        // Calculate waste by transporter
+        const wasteByTransporter = collections.reduce((acc, collection) => {
+            const transporterId = collection.transporter?._id.toString();
+            if (transporterId) {
+                if (!acc[transporterId]) {
+                    acc[transporterId] = {
+                        name: collection.transporter.name,
+                        vehicleNumber: collection.transporter.vehicleNumber,
+                        weight: 0
+                    };
+                }
+                acc[transporterId].weight += collection.weight;
+            }
+            return acc;
+        }, {});
+        
+        res.status(200).json({
+            recycler,
+            collections,
+            stats: {
+                totalCollections: collections.length,
+                totalWeight,
+                wasteByType,
+                wasteByTransporter: Object.values(wasteByTransporter)
+            }
+        });
+    } catch (error) {
+        console.error("Error in getRecyclerCollections: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
 
 /**
  * @description Retrieves a list of all registered recyclers.
@@ -283,6 +402,32 @@ export const createRecycler = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in createRecycler: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+/**
+ * @description Updates a specific recycler's profile information.
+ * @route PUT /api/admin/recyclers/:id
+ */
+export const updateRecyclerById = async (req, res) => {
+    try {
+        // Exclude password from being updated this way
+        const { name, email, location } = req.body;
+
+        const updatedRecycler = await Recycler.findByIdAndUpdate(
+            req.params.id, 
+            { name, email, location },
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        if (!updatedRecycler) {
+            return res.status(404).json({ error: "Recycler not found" });
+        }
+
+        res.status(200).json(updatedRecycler);
+    } catch (error) {
+        console.error("Error in updateRecyclerById: ", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
