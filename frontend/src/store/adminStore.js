@@ -98,7 +98,7 @@ const useAdminStore = create((set, get) => ({
         }
     },
 
-    // --- User Management ---
+    // --- User Management Actions ---
     getAllUsers: async () => {
         set({ loading: true });
         try {
@@ -112,21 +112,53 @@ const useAdminStore = create((set, get) => ({
         }
     },
 
+    getUserById: async (userId) => {
+        set({ loading: true });
+        try {
+            const res = await axios.get(`${ADMIN_API_URL}/users/${userId}`);
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to fetch user details");
+            console.error("Fetch user details failed:", error.response?.data || error.message);
+            return null;
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    getUserCollections: async (userId) => {
+        set({ loading: true });
+        try {
+            const res = await axios.get(`${ADMIN_API_URL}/users/${userId}/collections`);
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to fetch user collections");
+            console.error("Fetch user collections failed:", error.response?.data || error.message);
+            return [];
+        } finally {
+            set({ loading: false });
+        }
+    },
+
     updateUserById: async (userId, updateData) => {
+        set({ loading: true });
         try {
             const res = await toast.promise(
                 axios.put(`${ADMIN_API_URL}/users/${userId}`, updateData),
                 {
                     loading: "Updating user...",
                     success: "User updated successfully!",
-                    error: (err) => err.response?.data?.message || "Update failed!",
+                    error: (err) => err.response?.data?.message || "Failed to update user",
                 }
             );
+            // Update the users array with the updated user
             set((state) => ({
-                users: state.users.map((u) => u._id === userId ? res.data : u),
+                users: state.users.map((user) => (user._id === userId ? res.data : user)),
             }));
         } catch (error) {
             console.error("Update user failed:", error.response?.data || error.message);
+        } finally {
+            set({ loading: false });
         }
     },
 

@@ -26,6 +26,7 @@ export default function AdminDashboard() {
                     <Routes>
                         <Route path="dashboard" element={<DashboardHome />} />
                         <Route path="users" element={<ManageUsers />} />
+                        <Route path="users/:id" element={<UserDetail />} />
                         <Route path="transporters" element={<ManageTransporters />} />
                         <Route path="transporters/:id" element={<TransporterDetail />} />
                         <Route path="recyclers" element={<ManageRecyclers />} />
@@ -183,8 +184,14 @@ const ManageUsers = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatAddress(user.address)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
                                         <button onClick={() => handleEditClick(user)} className="text-blue-600 hover:text-blue-900"><EditIcon /></button>
+                                        <NavLink to={`/admin/users/${user._id}`} className="text-green-600 hover:text-green-900 ml-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </NavLink>
                                     </td>
                                 </tr>
                             ))}
@@ -578,6 +585,202 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
     );
 };
 
+
+// --- User Detail Component ---
+const UserDetail = () => {
+    const { admin, loading, getUserById, getUserCollections } = useAdminStore();
+    const [user, setUser] = useState(null);
+    const [collections, setCollections] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (admin && id) {
+                setIsLoading(true);
+                try {
+                    // Get user details
+                    const userData = await getUserById(id);
+                    setUser(userData);
+                    
+                    // Get user's waste collections
+                    const collectionsData = await getUserCollections(id);
+                    setCollections(collectionsData || []);
+                } catch (error) {
+                    console.error("Error fetching user data:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+        
+        fetchUserData();
+    }, [admin, id, getUserById, getUserCollections]);
+
+    const handleBackClick = () => {
+        navigate('/admin/users');
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const formatAddress = (address) => {
+        if (!address) return 'N/A';
+        return [address.street, address.city, address.state, address.pinCode].filter(Boolean).join(', ');
+    };
+
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <p className="text-center">Loading user data...</p>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex items-center mb-4">
+                    <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                </div>
+                <p className="text-center text-red-500">User not found</p>
+            </div>
+        );
+    }
+
+    // Calculate waste statistics
+    const totalWeight = collections.reduce((sum, c) => sum + (c.weight || 0), 0);
+    const wasteByType = collections.reduce((types, c) => {
+        if (c.wasteTypes) {
+            types.dry += c.wasteTypes.dry || 0;
+            types.wet += c.wasteTypes.wet || 0;
+            types.hazardous += c.wasteTypes.hazardous || 0;
+        }
+        return types;
+    }, { dry: 0, wet: 0, hazardous: 0 });
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* Header with back button */}
+            <div className="flex items-center mb-6">
+                <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back
+                </button>
+                <h2 className="text-2xl font-bold text-gray-800">User Details</h2>
+            </div>
+
+            {/* User Info Card */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-2">User Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-gray-600">Name: <span className="text-gray-900 font-medium">{user.name}</span></p>
+                        <p className="text-gray-600">Email: <span className="text-gray-900 font-medium">{user.email}</span></p>
+                    </div>
+                    <div>
+                        <p className="text-gray-600">Address: <span className="text-gray-900 font-medium">{formatAddress(user.address)}</span></p>
+                        <p className="text-gray-600">Phone: <span className="text-gray-900 font-medium">{user.phone || 'N/A'}</span></p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Waste Collection Stats */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Waste Statistics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-sm text-blue-600">Total Collections</p>
+                        <p className="text-2xl font-bold">{collections.length}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <p className="text-sm text-green-600">Total Weight</p>
+                        <p className="text-2xl font-bold">{totalWeight.toFixed(2)} kg</p>
+                    </div>
+                    <div className="col-span-2">
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-green-50 p-3 rounded-lg">
+                                <p className="text-xs text-green-600">Dry Waste</p>
+                                <p className="text-xl font-bold">{wasteByType.dry.toFixed(2)} kg</p>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                                <p className="text-xs text-blue-600">Wet Waste</p>
+                                <p className="text-xl font-bold">{wasteByType.wet.toFixed(2)} kg</p>
+                            </div>
+                            <div className="bg-red-50 p-3 rounded-lg">
+                                <p className="text-xs text-red-600">Hazardous</p>
+                                <p className="text-xl font-bold">{wasteByType.hazardous.toFixed(2)} kg</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Collection History Table */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Collection History</h3>
+                {collections.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transporter</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (kg)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waste Types</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recycler</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {collections.map(collection => (
+                                    <tr key={collection._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap">{formatDate(collection.createdAt)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.transporter?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.weight?.toFixed(2) || 'N/A'}</td>
+                                        <td className="px-6 py-4">
+                                            {collection.wasteTypes && (
+                                                <div className="flex flex-col space-y-1">
+                                                    {collection.wasteTypes.dry > 0 && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Dry: {collection.wasteTypes.dry.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.wet > 0 && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Wet: {collection.wasteTypes.wet.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.hazardous > 0 && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Hazardous: {collection.wasteTypes.hazardous.toFixed(2)} kg</span>}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${collection.recycler ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                {collection.recycler ? 'Delivered' : 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.recycler?.name || 'Not delivered'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500">No collections found for this user.</p>
+                )}
+            </div>
+        </div>
+    );
+};
 
 // --- Manage Recyclers Page (with corrected formatLocation) ---
 const ManageRecyclers = () => {

@@ -135,6 +135,27 @@ export const getUserById = async (req, res) => {
 };
 
 /**
+ * @description Gets all collections for a specific user.
+ * @route GET /api/admin/users/:id/collections
+ */
+export const getUserCollections = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Find collections where this user is the source
+        const collections = await Collection.find({ user: userId })
+            .populate('transporter', 'name email')
+            .populate('recycler', 'name email')
+            .sort({ createdAt: -1 });
+            
+        res.status(200).json(collections);
+    } catch (error) {
+        console.error("Error in getUserCollections: ", error.message);
+        res.status(500).json({ message: "Failed to fetch user collections" });
+    }
+};
+
+/**
  * @description Updates a specific user's profile information for support or correction.
  * @route PUT /api/admin/users/:id
  */
