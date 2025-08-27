@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, useNavigate, useParams } from 'react-router-dom';
 import useAdminStore from '../store/adminStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,7 +27,9 @@ export default function AdminDashboard() {
                         <Route path="dashboard" element={<DashboardHome />} />
                         <Route path="users" element={<ManageUsers />} />
                         <Route path="transporters" element={<ManageTransporters />} />
+                        <Route path="transporters/:id" element={<TransporterDetail />} />
                         <Route path="recyclers" element={<ManageRecyclers />} />
+                        <Route path="recyclers/:id" element={<RecyclerDetail />} />
                         <Route path="*" element={<DashboardHome />} />
                     </Routes>
                 </main>
@@ -253,8 +255,14 @@ const ManageTransporters = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{t.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{t.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatVehicleInfo(t.vehicleInfo)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
                                         <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-900"><EditIcon /></button>
+                                        <NavLink to={`/admin/transporters/${t._id}`} className="text-green-600 hover:text-green-900 ml-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </NavLink>
                                     </td>
                                 </tr>
                             ))}
@@ -267,6 +275,183 @@ const ManageTransporters = () => {
         </div>
     );
 };
+// TransporterDetail component to display transporter details and waste collection data
+const TransporterDetail = () => {
+    const { admin, currentTransporter, transporterCollections, transporterStats, loading, getTransporterCollections } = useAdminStore();
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (admin && id) {
+            getTransporterCollections(id);
+        }
+    }, [admin, id, getTransporterCollections]);
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const handleBackClick = () => {
+        navigate('/admin/transporters');
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <p className="text-center">Loading transporter data...</p>
+            </div>
+        );
+    }
+
+    if (!currentTransporter) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex items-center mb-4">
+                    <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                </div>
+                <p className="text-center text-red-500">Transporter not found</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* Header with back button */}
+            <div className="flex items-center mb-6">
+                <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back
+                </button>
+                <h2 className="text-2xl font-bold text-gray-800">Transporter Details</h2>
+            </div>
+
+            {/* Transporter Info Card */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-2">Transporter Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-gray-600">Name: <span className="text-gray-900 font-medium">{currentTransporter.name}</span></p>
+                        <p className="text-gray-600">Email: <span className="text-gray-900 font-medium">{currentTransporter.email}</span></p>
+                    </div>
+                    <div>
+                        <p className="text-gray-600">Vehicle: <span className="text-gray-900 font-medium">
+                            {currentTransporter.vehicleInfo?.model || 'N/A'} ({currentTransporter.vehicleInfo?.licensePlate || 'N/A'})
+                        </span></p>
+                        <p className="text-gray-600">Wallet Balance: <span className="text-gray-900 font-medium">
+                            ₹{currentTransporter.walletBalance?.toFixed(2) || '0.00'}
+                        </span></p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Waste Collection Stats */}
+            {transporterStats && (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Collection Statistics</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-600">Total Collections</p>
+                            <p className="text-2xl font-bold">{transporterStats.totalCollections}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-600">Total Weight Collected</p>
+                            <p className="text-2xl font-bold">{transporterStats.totalWeight.toFixed(2)} kg</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                            <p className="text-sm text-purple-600">Given to Recyclers</p>
+                            <p className="text-2xl font-bold">{transporterStats.wasteToRecyclers.toFixed(2)} kg</p>
+                        </div>
+                        <div className="bg-yellow-50 p-4 rounded-lg">
+                            <p className="text-sm text-yellow-600">Pending Waste</p>
+                            <p className="text-2xl font-bold">{transporterStats.pendingWaste.toFixed(2)} kg</p>
+                        </div>
+                    </div>
+
+                    {/* Waste by Type */}
+                    <div className="mt-6">
+                        <h4 className="text-md font-semibold mb-3">Waste by Type</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-green-50 p-4 rounded-lg">
+                                <p className="text-sm text-green-600">Dry Waste</p>
+                                <p className="text-xl font-bold">{transporterStats.wasteByType.dry.toFixed(2)} kg</p>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <p className="text-sm text-blue-600">Wet Waste</p>
+                                <p className="text-xl font-bold">{transporterStats.wasteByType.wet.toFixed(2)} kg</p>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-lg">
+                                <p className="text-sm text-red-600">Hazardous Waste</p>
+                                <p className="text-xl font-bold">{transporterStats.wasteByType.hazardous.toFixed(2)} kg</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Collection History Table */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Collection History</h3>
+                {transporterCollections.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (kg)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waste Types</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recycler</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {transporterCollections.map(collection => (
+                                    <tr key={collection._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap">{formatDate(collection.createdAt)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.user?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.weight.toFixed(2)}</td>
+                                        <td className="px-6 py-4">
+                                            {collection.wasteTypes && (
+                                                <div className="flex flex-col space-y-1">
+                                                    {collection.wasteTypes.dry > 0 && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Dry: {collection.wasteTypes.dry.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.wet > 0 && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Wet: {collection.wasteTypes.wet.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.hazardous > 0 && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Hazardous: {collection.wasteTypes.hazardous.toFixed(2)} kg</span>}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${collection.recycler ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                {collection.recycler ? 'Delivered' : 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.recycler?.name || 'Not delivered'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500">No collections found for this transporter.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const Modal = ({ children, onClose, title }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center" onClick={onClose}>
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -396,8 +581,10 @@ const UpdateTransporterModal = ({ transporter, onUpdate, onClose }) => {
 
 // --- Manage Recyclers Page (with corrected formatLocation) ---
 const ManageRecyclers = () => {
-    const { admin, recyclers, getAllRecyclers, loading, createRecycler } = useAdminStore();
+    const { admin, recyclers, getAllRecyclers, loading, createRecycler, updateRecycler } = useAdminStore();
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+    const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
+    const [selectedRecycler, setSelectedRecycler] = useState(null);
 
     useEffect(() => {
         if (admin) {
@@ -408,6 +595,16 @@ const ManageRecyclers = () => {
     const handleCreate = async (data) => {
         await createRecycler(data);
         setCreateModalOpen(false);
+    };
+
+    const handleUpdate = async (data) => {
+        await updateRecycler(selectedRecycler._id, data);
+        setUpdateModalOpen(false);
+    };
+
+    const handleEditClick = (recycler) => {
+        setSelectedRecycler(recycler);
+        setUpdateModalOpen(true);
     };
 
     const formatLocation = (location) => {
@@ -432,6 +629,7 @@ const ManageRecyclers = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -440,6 +638,19 @@ const ManageRecyclers = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{r.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{r.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatLocation(r.location)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex">
+                                        <button onClick={() => handleEditClick(r)} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <NavLink to={`/admin/recyclers/${r._id}`} className="text-blue-600 hover:text-blue-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </NavLink>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -447,6 +658,7 @@ const ManageRecyclers = () => {
                 </div>
             )}
             {isCreateModalOpen && <CreateRecyclerModal onCreate={handleCreate} onClose={() => setCreateModalOpen(false)} />}
+            {isUpdateModalOpen && <UpdateRecyclerModal recycler={selectedRecycler} onUpdate={handleUpdate} onClose={() => setUpdateModalOpen(false)} />}
         </div>
     );
 };
@@ -506,6 +718,271 @@ const CreateRecyclerModal = ({ onCreate, onClose }) => {
                 <div className="flex justify-end space-x-2">
                     <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Create Recycler</button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+// RecyclerDetail component to display recycler details and waste collection data
+const RecyclerDetail = () => {
+    const { admin, currentRecycler, recyclerCollections, recyclerStats, loading, getRecyclerCollections } = useAdminStore();
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (admin && id) {
+            getRecyclerCollections(id);
+        }
+    }, [admin, id, getRecyclerCollections]);
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const handleBackClick = () => {
+        navigate('/admin/recyclers');
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <p className="text-center">Loading recycler data...</p>
+            </div>
+        );
+    }
+
+    if (!currentRecycler) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex items-center mb-4">
+                    <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back
+                    </button>
+                </div>
+                <p className="text-center text-red-500">Recycler not found</p>
+            </div>
+        );
+    }
+
+    const formatLocation = (location) => {
+        if (!location || typeof location !== 'object') return 'N/A';
+        return [location.address, location.city, location.state, location.zipCode].filter(Boolean).join(', ');
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+            {/* Header with back button */}
+            <div className="flex items-center mb-6">
+                <button onClick={handleBackClick} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back
+                </button>
+                <h2 className="text-2xl font-bold text-gray-800">Recycler Details</h2>
+            </div>
+
+            {/* Recycler Info Card */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-2">Recycler Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-gray-600">Name: <span className="text-gray-900 font-medium">{currentRecycler.name}</span></p>
+                        <p className="text-gray-600">Email: <span className="text-gray-900 font-medium">{currentRecycler.email}</span></p>
+                    </div>
+                    <div>
+                        <p className="text-gray-600">Location: <span className="text-gray-900 font-medium">
+                            {formatLocation(currentRecycler.location)}
+                        </span></p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Waste Collection Stats */}
+            {recyclerStats && (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Collection Statistics</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-blue-600">Total Collections</p>
+                            <p className="text-2xl font-bold">{recyclerStats.totalCollections}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-green-600">Total Weight Collected</p>
+                            <p className="text-2xl font-bold">{recyclerStats.totalWeight.toFixed(2)} kg</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                            <p className="text-sm text-purple-600">Waste Types</p>
+                            <div className="flex flex-col space-y-1 mt-2">
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Dry: {recyclerStats.wasteByType.dry.toFixed(2)} kg</span>
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Wet: {recyclerStats.wasteByType.wet.toFixed(2)} kg</span>
+                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Hazardous: {recyclerStats.wasteByType.hazardous.toFixed(2)} kg</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Waste by Transporter */}
+                    {recyclerStats.wasteByTransporter && recyclerStats.wasteByTransporter.length > 0 && (
+                        <div className="mt-6">
+                            <h4 className="text-md font-semibold mb-3">Waste by Transporter</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {recyclerStats.wasteByTransporter.map((item, index) => (
+                                    <div key={index} className="bg-yellow-50 p-4 rounded-lg">
+                                        <p className="text-sm text-yellow-600">{item.name}</p>
+                                        <p className="text-md font-bold">{item.vehicleNumber}</p>
+                                        <p className="text-xl font-bold">{item.weight.toFixed(2)} kg</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Collection History Table */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Collection History</h3>
+                {recyclerCollections.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transporter</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (kg)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waste Types</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {recyclerCollections.map(collection => (
+                                    <tr key={collection._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap">{formatDate(collection.createdAt)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.user?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.transporter?.name || 'N/A'} ({collection.transporter?.vehicleNumber || 'N/A'})</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{collection.weight.toFixed(2)}</td>
+                                        <td className="px-6 py-4">
+                                            {collection.wasteTypes && (
+                                                <div className="flex flex-col space-y-1">
+                                                    {collection.wasteTypes.dry > 0 && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Dry: {collection.wasteTypes.dry.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.wet > 0 && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Wet: {collection.wasteTypes.wet.toFixed(2)} kg</span>}
+                                                    {collection.wasteTypes.hazardous > 0 && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Hazardous: {collection.wasteTypes.hazardous.toFixed(2)} kg</span>}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500">No collections found for this recycler.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- Update Recycler Modal ---
+const UpdateRecyclerModal = ({ recycler, onUpdate, onClose }) => {
+    const [name, setName] = useState(recycler.name || '');
+    const [email, setEmail] = useState(recycler.email || '');
+    const [address, setAddress] = useState(recycler.location?.address || '');
+    const [city, setCity] = useState(recycler.location?.city || '');
+    const [state, setState] = useState(recycler.location?.state || '');
+    const [zipCode, setZipCode] = useState(recycler.location?.zipCode || '');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onUpdate({
+            name,
+            email,
+            location: {
+                address,
+                city,
+                state,
+                zipCode
+            }
+        });
+    };
+
+    return (
+        <Modal onClose={onClose} title="Update Recycler">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <input
+                        type="text"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">City</label>
+                    <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">State</label>
+                    <input
+                        type="text"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Zip Code</label>
+                    <input
+                        type="text"
+                        value={zipCode}
+                        onChange={(e) => setZipCode(e.target.value)}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                        required
+                    />
+                </div>
+                <div className="flex justify-end space-x-2">
+                    <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Update Recycler</button>
                 </div>
             </form>
         </Modal>

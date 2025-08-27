@@ -24,6 +24,12 @@ const useAdminStore = create((set, get) => ({
     users: [],
     transporters: [],
     recyclers: [],
+    currentTransporter: null,
+    transporterCollections: [],
+    transporterStats: null,
+    currentRecycler: null,
+    recyclerCollections: [],
+    recyclerStats: null,
 
     // --- ACTIONS ---
 
@@ -168,6 +174,24 @@ const useAdminStore = create((set, get) => ({
             console.error("Update transporter failed:", error.response?.data || error.message);
         }
     },
+    
+    getTransporterCollections: async (id) => {
+        set({ loading: true });
+        try {
+            const res = await axios.get(`${ADMIN_API_URL}/transporters/${id}/collections`);
+            set({ 
+                currentTransporter: res.data.transporter,
+                transporterCollections: res.data.collections,
+                transporterStats: res.data.stats,
+                loading: false
+            });
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to fetch transporter collections");
+            console.error("Fetch transporter collections failed:", error.response?.data || error.message);
+            set({ loading: false });
+        }
+    },
 
     // --- Recycler Management ---
     getAllRecyclers: async () => {
@@ -182,7 +206,25 @@ const useAdminStore = create((set, get) => ({
             set({ loading: false });
         }
     },
-
+    
+    getRecyclerCollections: async (id) => {
+        set({ loading: true });
+        try {
+            const res = await axios.get(`${ADMIN_API_URL}/recyclers/${id}/collections`);
+            set({ 
+                currentRecycler: res.data.recycler,
+                recyclerCollections: res.data.collections,
+                recyclerStats: res.data.stats,
+                loading: false
+            });
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to fetch recycler collections");
+            console.error("Fetch recycler collections failed:", error.response?.data || error.message);
+            set({ loading: false });
+        }
+    },
+    
     createRecycler: async (data) => {
         try {
             await toast.promise(axios.post(`${ADMIN_API_URL}/recyclers`, data), {
@@ -193,6 +235,19 @@ const useAdminStore = create((set, get) => ({
             get().getAllRecyclers(); // Refresh the list after creation
         } catch (error) {
             console.error("Create recycler failed:", error.response?.data || error.message);
+        }
+    },
+    
+    updateRecycler: async (id, data) => {
+        try {
+            await toast.promise(axios.put(`${ADMIN_API_URL}/recyclers/${id}`, data), {
+                loading: "Updating recycler...",
+                success: "Recycler updated successfully!",
+                error: (err) => err.response?.data?.message || "Update failed!",
+            });
+            get().getAllRecyclers(); // Refresh the list after update
+        } catch (error) {
+            console.error("Update recycler failed:", error.response?.data || error.message);
         }
     },
 }));

@@ -10,8 +10,11 @@ import {
     getAllTransporters,
     createTransporter,
     updateTransporterById,
+    getTransporterCollections,
     getAllRecyclers,
     createRecycler,
+    updateRecyclerById,
+    getRecyclerCollections,
     login,
     checkUser
 } from '../controllers/admin.controller.js';
@@ -35,9 +38,12 @@ router.put('/users/:id', updateUserById); // For admin support and data correcti
 router.get('/transporters', getAllTransporters);
 router.post('/transporters', createTransporter);
 router.put('/transporters/:id', updateTransporterById);
+router.get('/transporters/:id/collections', getTransporterCollections);
 
 // ## Recycler Management Routes ##
 router.get('/recyclers', getAllRecyclers);
 router.post('/recyclers', createRecycler);
+router.put('/recyclers/:id', updateRecyclerById);
+router.get('/recyclers/:id/collections', getRecyclerCollections);
 
 export default router;
