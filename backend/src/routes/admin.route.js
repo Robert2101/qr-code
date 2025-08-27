@@ -7,6 +7,7 @@ import {
     getAllUsers, 
     getUserById,
     updateUserById,
+    getUserCollections,
     getAllTransporters,
     createTransporter,
     updateTransporterById,
@@ -33,6 +34,7 @@ router.get('/stats', getDashboardStats);
 router.get('/users', getAllUsers);
 router.get('/users/:id', getUserById);
 router.put('/users/:id', updateUserById); // For admin support and data correction
+router.get('/users/:id/collections', getUserCollections);
 
 // ## Transporter Management Routes ##
 router.get('/transporters', getAllTransporters);
