@@ -31,7 +31,11 @@ const transporterSchema = new Schema({
   },
   qrCodeUrl: {
     type: String, // URL from Cloudinary
+<<<<<<< HEAD
     default: null
+=======
+    default: ""
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
   },
   walletBalance: {
     type: Number,

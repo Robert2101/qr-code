@@ -4,10 +4,14 @@ import Transporter from '../models/transporter.model.js';
 import Recycler from '../models/recycler.model.js';
 import Collection from '../models/collection.model.js';
 import Admin from '../models/admin.model.js';
+<<<<<<< HEAD
 import TransporterHistory from '../models/transporterhistory.model.js';
 import { generateToken } from '../utils/jwt.js'
 import QRCode from 'qrcode';
 import cloudinary from '../config/cloudinary.js';
+=======
+import { generateToken } from '../utils/jwt.js'
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
 // ## Dashboard Controller ##
 export const checkUser = async (req, res) => {
@@ -223,6 +227,7 @@ export const createTransporter = async (req, res) => {
 
         await newTransporter.save();
 
+<<<<<<< HEAD
         try {
             // Generate QR code for the new transporter
             const qrDataUrl = await QRCode.toDataURL(newTransporter._id.toString());
@@ -245,6 +250,8 @@ export const createTransporter = async (req, res) => {
             // Continue with the response even if QR code generation fails
         }
 
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         res.status(201).json({ 
             message: "Transporter created successfully",
             transporterId: newTransporter._id 
@@ -338,6 +345,7 @@ export const getTransporterCollections = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
 /**
  * @description Gets location history for a specific transporter.
  * @route GET /api/admin/transporters/:id/location-history
@@ -396,6 +404,8 @@ export const getTransporterLocationHistory = async (req, res) => {
     }
 };
 
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 // ## Recycler Management Controllers ##
 
 /**

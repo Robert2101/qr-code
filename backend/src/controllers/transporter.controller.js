@@ -313,6 +313,7 @@ const showQr = async (req, res) => {
         }
 
         const transporter = await Transporter.findById(transporterId);
+<<<<<<< HEAD
         if (!transporter) {
             return res.status(404).json({ message: "Transporter not found" });
         }
@@ -336,6 +337,10 @@ const showQr = async (req, res) => {
                 console.error('Error generating QR code on the fly:', qrError);
                 return res.status(404).json({ message: "Could not generate QR code" });
             }
+=======
+        if (!transporter || !transporter.qrCodeUrl) {
+            return res.status(404).json({ message: "QR code not found" });
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         }
 
         res.status(200).json({

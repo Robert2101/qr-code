@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, useNavigate, useParams } from 'react-router-dom';
 import useAdminStore from '../store/adminStore';
+<<<<<<< HEAD
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Icons (using simple SVGs for self-containment) ---
@@ -13,6 +16,7 @@ const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
+<<<<<<< HEAD
 // TransporterMap component to display location history on a map
 const TransporterMap = ({ locationHistory }) => {
     // Default center position (can be adjusted based on the first checkpoint)
@@ -161,6 +165,8 @@ const TransporterMap = ({ locationHistory }) => {
     );
 };
 
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
 // --- Main Dashboard Component ---
 export default function AdminDashboard() {
@@ -433,17 +439,28 @@ const ManageTransporters = () => {
 };
 // TransporterDetail component to display transporter details and waste collection data
 const TransporterDetail = () => {
+<<<<<<< HEAD
     const { admin, currentTransporter, transporterCollections, transporterStats, transporterLocationHistory, loading, getTransporterCollections, getTransporterLocationHistory } = useAdminStore();
     const { id } = useParams();
     const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+=======
+    const { admin, currentTransporter, transporterCollections, transporterStats, loading, getTransporterCollections } = useAdminStore();
+    const { id } = useParams();
+    const navigate = useNavigate();
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     useEffect(() => {
         if (admin && id) {
             getTransporterCollections(id);
+<<<<<<< HEAD
             getTransporterLocationHistory(id, selectedDate);
         }
     }, [admin, id, selectedDate, getTransporterCollections, getTransporterLocationHistory]);
+=======
+        }
+    }, [admin, id, getTransporterCollections]);
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -606,6 +623,7 @@ const TransporterDetail = () => {
                     <p className="text-center text-gray-500">No collections found for this transporter.</p>
                 )}
             </div>
+<<<<<<< HEAD
 
             {/* Location History Map */}
             <div className="mt-6">
@@ -635,6 +653,8 @@ const TransporterDetail = () => {
                     <p className="text-center text-gray-500">Loading location data...</p>
                 )}
             </div>
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         </div>
     );
 };
