@@ -313,8 +313,34 @@ const showQr = async (req, res) => {
         }
 
         const transporter = await Transporter.findById(transporterId);
+<<<<<<< HEAD
+        if (!transporter) {
+            return res.status(404).json({ message: "Transporter not found" });
+        }
+        
+        if (!transporter.qrCodeUrl) {
+            // If QR code is missing, generate it on the fly
+            try {
+                console.log('QR code missing for transporter, generating now:', transporterId);
+                const qrDataUrl = await QRCode.toDataURL(transporter._id.toString());
+                
+                const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
+                    folder: "qr_codes",
+                    public_id: `transporter_qr_${transporter._id}`,
+                    overwrite: true
+                });
+                
+                transporter.qrCodeUrl = uploadResult.secure_url;
+                await transporter.save();
+                console.log('Generated and saved new QR code:', uploadResult.secure_url);
+            } catch (qrError) {
+                console.error('Error generating QR code on the fly:', qrError);
+                return res.status(404).json({ message: "Could not generate QR code" });
+            }
+=======
         if (!transporter || !transporter.qrCodeUrl) {
             return res.status(404).json({ message: "QR code not found" });
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         }
 
         res.status(200).json({

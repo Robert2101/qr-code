@@ -27,6 +27,10 @@ const useAdminStore = create((set, get) => ({
     currentTransporter: null,
     transporterCollections: [],
     transporterStats: null,
+<<<<<<< HEAD
+    transporterLocationHistory: null, // Store location history data
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
     currentRecycler: null,
     recyclerCollections: [],
     recyclerStats: null,
@@ -224,6 +228,33 @@ const useAdminStore = create((set, get) => ({
             set({ loading: false });
         }
     },
+<<<<<<< HEAD
+    
+    // Fetch transporter location history
+    getTransporterLocationHistory: async (id, date) => {
+        set({ loading: true });
+        try {
+            // Build the URL with optional date parameter
+            let url = `${ADMIN_API_URL}/transporters/${id}/location-history`;
+            if (date) {
+                url += `?date=${date}`;
+            }
+            
+            const res = await axios.get(url);
+            set({ 
+                transporterLocationHistory: res.data,
+                loading: false
+            });
+            return res.data;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to fetch transporter location history");
+            console.error("Fetch transporter location history failed:", error.response?.data || error.message);
+            set({ loading: false });
+            return null;
+        }
+    },
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     // --- Recycler Management ---
     getAllRecyclers: async () => {

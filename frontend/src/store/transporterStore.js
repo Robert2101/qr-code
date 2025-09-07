@@ -76,12 +76,23 @@ export const useTransporterStore = create((set) => ({
                 loading: { ...state.loading, qrCode: false },
             }));
         } catch (err) {
+<<<<<<< HEAD
+            // Don't show error toast if QR code is not found but still set the error in state
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
             const msg = err.response?.data?.message || "Failed to fetch QR code";
             set((state) => ({
                 error: msg,
                 loading: { ...state.loading, qrCode: false },
             }));
+<<<<<<< HEAD
+            // Only show toast for network errors, not for QR code not found
+            if (!err.response || err.response.status !== 404) {
+                toast.error(msg);
+            }
+=======
             toast.error(msg);
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         }
     }
 }));

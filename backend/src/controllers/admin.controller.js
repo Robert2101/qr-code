@@ -4,7 +4,14 @@ import Transporter from '../models/transporter.model.js';
 import Recycler from '../models/recycler.model.js';
 import Collection from '../models/collection.model.js';
 import Admin from '../models/admin.model.js';
+<<<<<<< HEAD
+import TransporterHistory from '../models/transporterhistory.model.js';
 import { generateToken } from '../utils/jwt.js'
+import QRCode from 'qrcode';
+import cloudinary from '../config/cloudinary.js';
+=======
+import { generateToken } from '../utils/jwt.js'
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
 // ## Dashboard Controller ##
 export const checkUser = async (req, res) => {
@@ -220,6 +227,31 @@ export const createTransporter = async (req, res) => {
 
         await newTransporter.save();
 
+<<<<<<< HEAD
+        try {
+            // Generate QR code for the new transporter
+            const qrDataUrl = await QRCode.toDataURL(newTransporter._id.toString());
+            console.log('QR code generated successfully for new transporter:', newTransporter._id);
+
+            // Upload QR to cloudinary
+            const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
+                folder: "qr_codes",
+                public_id: `transporter_qr_${newTransporter._id}`,
+                overwrite: true
+            });
+            console.log('QR code uploaded to Cloudinary successfully:', uploadResult.secure_url);
+
+            // Save QR code URL in DB
+            newTransporter.qrCodeUrl = uploadResult.secure_url;
+            await newTransporter.save();
+            console.log('QR code URL saved to transporter document');
+        } catch (qrError) {
+            console.error('Error generating QR code:', qrError);
+            // Continue with the response even if QR code generation fails
+        }
+
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         res.status(201).json({ 
             message: "Transporter created successfully",
             transporterId: newTransporter._id 
@@ -313,6 +345,67 @@ export const getTransporterCollections = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
+/**
+ * @description Gets location history for a specific transporter.
+ * @route GET /api/admin/transporters/:id/location-history
+ */
+export const getTransporterLocationHistory = async (req, res) => {
+    try {
+        const transporterId = req.params.id;
+        
+        // Verify transporter exists
+        const transporter = await Transporter.findById(transporterId).select('-password');
+        if (!transporter) {
+            return res.status(404).json({ error: "Transporter not found" });
+        }
+        
+        // Get the date parameter from query or use today's date
+        let date = req.query.date ? new Date(req.query.date) : new Date();
+        date.setHours(0, 0, 0, 0); // Set to midnight for proper date comparison
+        
+        // Find transporter history for the specified date
+        const history = await TransporterHistory.findOne({
+            transporter: transporterId,
+            date: date
+        });
+        
+        if (!history || history.checkpoints.length === 0) {
+            return res.status(200).json({
+                transporter,
+                date: date,
+                checkpoints: [],
+                message: "No location history found for this date"
+            });
+        }
+        
+        // Find collections for this transporter on this date that have been delivered to a recycler
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        const deliveredCollection = await Collection.findOne({
+            transporter: transporterId,
+            createdAt: { $gte: date, $lte: endOfDay },
+            recycler: { $exists: true, $ne: null }
+        }).populate('recycler', 'name address');
+        
+        // Include recycler info if available
+        const recyclerInfo = deliveredCollection ? deliveredCollection.recycler : null;
+        
+        res.status(200).json({
+            transporter,
+            date: history.date,
+            checkpoints: history.checkpoints,
+            recyclerInfo
+        });
+    } catch (error) {
+        console.error("Error in getTransporterLocationHistory: ", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 // ## Recycler Management Controllers ##
 
 /**

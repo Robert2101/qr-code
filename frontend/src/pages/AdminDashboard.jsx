@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, useNavigate, useParams } from 'react-router-dom';
 import useAdminStore from '../store/adminStore';
+<<<<<<< HEAD
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Icons (using simple SVGs for self-containment) ---
@@ -12,6 +16,157 @@ const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
+<<<<<<< HEAD
+// TransporterMap component to display location history on a map
+const TransporterMap = ({ locationHistory }) => {
+    // Default center position (can be adjusted based on the first checkpoint)
+    const defaultPosition = [20.5937, 78.9629]; // Default to center of India
+    
+    // Extract checkpoints from location history
+    const checkpoints = locationHistory?.checkpoints || [];
+    
+    // Get center position from the first checkpoint if available
+    const centerPosition = checkpoints.length > 0 ? 
+        [checkpoints[0].location.coordinates[1], checkpoints[0].location.coordinates[0]] : 
+        defaultPosition;
+    
+    // Create an array of positions for the polyline
+    const routePositions = checkpoints.map(checkpoint => [
+        checkpoint.location.coordinates[1], // Latitude
+        checkpoint.location.coordinates[0]  // Longitude
+    ]);
+    
+    // Format time for display in popups
+    const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+    
+    // Get recycler information if available
+    const recyclerInfo = locationHistory?.recyclerInfo;
+
+    // Calculate the start and end points for special markers
+    const startPoint = routePositions.length > 0 ? routePositions[0] : null;
+    const endPoint = routePositions.length > 1 ? routePositions[routePositions.length - 1] : null;
+    
+    // Custom styles for markers
+    const startMarkerStyle = {
+        color: 'green',
+        fillColor: 'green',
+        fillOpacity: 0.8,
+        weight: 2
+    };
+    
+    const endMarkerStyle = {
+        color: 'red',
+        fillColor: 'red',
+        fillOpacity: 0.8,
+        weight: 2
+    };
+    
+    const checkpointStyle = {
+        color: 'blue',
+        fillColor: 'blue',
+        fillOpacity: 0.6,
+        weight: 1
+    };
+    
+    return (
+        <MapContainer 
+            center={centerPosition} 
+            zoom={13} 
+            style={{ height: '100%', width: '100%' }}
+            className="rounded-lg shadow-inner"
+        >
+            <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            
+            {/* Draw route line */}
+            {routePositions.length > 1 && (
+                <Polyline 
+                    positions={routePositions}
+                    color="#4f46e5" // Indigo color for route line
+                    weight={4}
+                    opacity={0.7}
+                    dashArray="5, 10" // Dashed line for better visibility
+                />
+            )}
+            
+            {/* Place markers for each checkpoint */}
+            {checkpoints.map((checkpoint, index) => {
+                const position = [
+                    checkpoint.location.coordinates[1], // Latitude
+                    checkpoint.location.coordinates[0]  // Longitude
+                ];
+                
+                // Determine if this is start or end point
+                const isStart = index === 0;
+                const isEnd = index === checkpoints.length - 1;
+                const markerStyle = isStart ? startMarkerStyle : (isEnd ? endMarkerStyle : checkpointStyle);
+                const markerLabel = isStart ? 'Start' : (isEnd ? 'End' : `Checkpoint ${index + 1}`);
+                
+                return (
+                    <Marker 
+                        key={index} 
+                        position={position}
+                    >
+                        <Popup className="custom-popup">
+                            <div className="p-2">
+                                <strong className={`${isStart ? 'text-green-600' : (isEnd ? 'text-red-600' : 'text-blue-600')}`}>
+                                    {markerLabel}
+                                </strong>
+                                <div className="text-sm mt-1">
+                                    <div>Time: {formatTime(checkpoint.scannedAt)}</div>
+                                    {isEnd && recyclerInfo && (
+                                        <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                            <div className="font-semibold text-green-700">Delivered to Recycler:</div>
+                                            <div className="text-sm text-gray-700">{recyclerInfo.name}</div>
+                                            <div className="text-xs text-gray-600 mt-1">
+                                                {recyclerInfo.address?.street}, {recyclerInfo.address?.city}, {recyclerInfo.address?.state} {recyclerInfo.address?.pinCode}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="text-gray-600 text-xs mt-1">
+                                        Lat: {position[0].toFixed(6)}<br />
+                                        Lng: {position[1].toFixed(6)}
+                                    </div>
+                                </div>
+                            </div>
+                        </Popup>
+                    </Marker>
+                );
+            })}
+            
+            {/* Legend */}
+            <div className="leaflet-bottom leaflet-right">
+                <div className="leaflet-control leaflet-bar bg-white p-2 rounded shadow-md">
+                    <div className="text-xs font-medium mb-1">Route Legend</div>
+                    <div className="flex items-center mb-1">
+                        <div className="w-3 h-3 rounded-full bg-green-600 mr-1"></div>
+                        <span className="text-xs">Start</span>
+                    </div>
+                    <div className="flex items-center mb-1">
+                        <div className="w-3 h-3 rounded-full bg-blue-600 mr-1"></div>
+                        <span className="text-xs">Checkpoint</span>
+                    </div>
+                    <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
+                        <span className="text-xs">End</span>
+                    </div>
+                </div>
+            </div>
+        </MapContainer>
+    );
+};
+
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
 // --- Main Dashboard Component ---
 export default function AdminDashboard() {
@@ -284,15 +439,28 @@ const ManageTransporters = () => {
 };
 // TransporterDetail component to display transporter details and waste collection data
 const TransporterDetail = () => {
+<<<<<<< HEAD
+    const { admin, currentTransporter, transporterCollections, transporterStats, transporterLocationHistory, loading, getTransporterCollections, getTransporterLocationHistory } = useAdminStore();
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+=======
     const { admin, currentTransporter, transporterCollections, transporterStats, loading, getTransporterCollections } = useAdminStore();
     const { id } = useParams();
     const navigate = useNavigate();
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     useEffect(() => {
         if (admin && id) {
             getTransporterCollections(id);
+<<<<<<< HEAD
+            getTransporterLocationHistory(id, selectedDate);
+        }
+    }, [admin, id, selectedDate, getTransporterCollections, getTransporterLocationHistory]);
+=======
         }
     }, [admin, id, getTransporterCollections]);
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -455,6 +623,38 @@ const TransporterDetail = () => {
                     <p className="text-center text-gray-500">No collections found for this transporter.</p>
                 )}
             </div>
+<<<<<<< HEAD
+
+            {/* Location History Map */}
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">Location Tracking</h3>
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
+                    <div className="md:w-1/3">
+                        <label htmlFor="date-select" className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+                        <input 
+                            type="date" 
+                            id="date-select"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="w-full border border-gray-300 rounded-md py-2 px-3"
+                        />
+                    </div>
+                </div>
+                
+                {transporterLocationHistory ? (
+                    transporterLocationHistory.checkpoints && transporterLocationHistory.checkpoints.length > 0 ? (
+                        <div className="h-96 w-full rounded-lg overflow-hidden border border-gray-300">
+                            <TransporterMap locationHistory={transporterLocationHistory} />
+                        </div>
+                    ) : (
+                        <p className="text-center text-gray-500">No location data available for the selected date.</p>
+                    )
+                ) : (
+                    <p className="text-center text-gray-500">Loading location data...</p>
+                )}
+            </div>
+=======
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
         </div>
     );
 };

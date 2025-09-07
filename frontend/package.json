@@ -12,9 +12,17 @@
   "dependencies": {
     "axios": "^1.11.0",
     "framer-motion": "^12.23.12",
+<<<<<<< HEAD
+    "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^5.0.0",
+=======
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hot-toast": "^2.6.0",
+>>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
     "react-router-dom": "^7.8.2",
     "zustand": "^5.0.8"
   },
