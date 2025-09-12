@@ -27,10 +27,7 @@ const useAdminStore = create((set, get) => ({
     currentTransporter: null,
     transporterCollections: [],
     transporterStats: null,
-<<<<<<< HEAD
     transporterLocationHistory: null, // Store location history data
-=======
->>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
     currentRecycler: null,
     recyclerCollections: [],
     recyclerStats: null,
@@ -228,7 +225,6 @@ const useAdminStore = create((set, get) => ({
             set({ loading: false });
         }
     },
-<<<<<<< HEAD
     
     // Fetch transporter location history
     getTransporterLocationHistory: async (id, date) => {
@@ -253,8 +249,6 @@ const useAdminStore = create((set, get) => ({
             return null;
         }
     },
-=======
->>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
     // --- Recycler Management ---
     getAllRecyclers: async () => {

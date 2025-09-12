@@ -12,10 +12,7 @@ import {
     createTransporter,
     updateTransporterById,
     getTransporterCollections,
-<<<<<<< HEAD
     getTransporterLocationHistory,
-=======
->>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
     getAllRecyclers,
     createRecycler,
     updateRecyclerById,
@@ -45,10 +42,7 @@ router.get('/transporters', getAllTransporters);
 router.post('/transporters', createTransporter);
 router.put('/transporters/:id', updateTransporterById);
 router.get('/transporters/:id/collections', getTransporterCollections);
-<<<<<<< HEAD
 router.get('/transporters/:id/location-history', getTransporterLocationHistory);
-=======
->>>>>>> c81b36c7c0fb29733e30c3d4a9ebe4328a1c4683
 
 // ## Recycler Management Routes ##
 router.get('/recyclers', getAllRecyclers);
