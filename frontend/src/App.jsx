@@ -9,7 +9,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import TransporterDashboard from "./pages/TransporterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import RecyclerDashboard from "./pages/RecyclerDashboard"; // Import the new dashboard
+import RecyclerDashboard from "./pages/RecyclerDashboard";
 
 import { Toaster } from "react-hot-toast";
 
@@ -17,11 +17,23 @@ function App() {
   const { currentUser, role, loading: authLoading, checkAuth } = useAuthStore();
   const { admin, isAuthChecked: isAdminAuthChecked, checkAuth: checkAdminAuth } = useAdminStore();
 
+  // This is the single, correct place to check for authentication when the app loads.
   useEffect(() => {
     checkAuth();
     checkAdminAuth();
   }, [checkAuth, checkAdminAuth]);
 
+  useEffect(() => {
+    const getDashboardPath = (userRole) => {
+      switch (userRole) {
+        case "user": return "/dashboard";
+        case "transporter": return "/transporter-dashboard";
+        case "recycler": return "/recycler-dashboard";
+        case "admin": return "/admin/dashboard"; // Handle admin role as well
+        default: return "/";
+      }
+    }});
+  // This correctly shows a loading screen while authentication is in progress.
   if (authLoading || !isAdminAuthChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -75,14 +87,12 @@ function App() {
               role === "transporter" ? <TransporterDashboard /> : <Navigate to={getDashboardPath()} replace />
             }
           />
-          {/* --- NEW RECYCLER ROUTE --- */}
           <Route
             path="/recycler-dashboard/*"
             element={
               role === "recycler" ? <RecyclerDashboard /> : <Navigate to={getDashboardPath()} replace />
             }
           />
-          {/* Redirect from root or any other invalid path to the correct dashboard */}
           <Route
             path="*"
             element={<Navigate to={getDashboardPath()} replace />}

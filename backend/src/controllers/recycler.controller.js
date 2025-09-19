@@ -111,7 +111,7 @@ const checkUser = (req, res) => {
     // So, we just need to send back the `req.user` object.
     try {
         console.log("✅ checkUser successful for:", req.user.email);
-        res.status(200).json(req.user);
+        res.status(200).json({ recycler: req.user });
     } catch (error) {
         console.error("💥 Error in checkUser:", error);
         res.status(500).json({ message: "Server error" });

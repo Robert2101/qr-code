@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import axios from "axios";
-import { useAuthStore } from "./authStore"; // <-- adjust path if needed
 import toast from "react-hot-toast";
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
@@ -22,7 +21,6 @@ export const useUserStore = create((set) => ({
             set((state) => ({ loading: { ...state.loading, profile: true }, error: null }));
             const res = await axios.put(`${API_URL}/api/auth/update-profile`, profileData);
 
-            useAuthStore.setState({ currentUser: res.data.user });
 
             set((state) => ({
                 loading: { ...state.loading, profile: false },

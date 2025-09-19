@@ -5,7 +5,7 @@ import Recycler from '../models/recycler.model.js';
 import Collection from '../models/collection.model.js';
 import Admin from '../models/admin.model.js';
 import { generateToken } from '../utils/jwt.js'
-
+import TransporterHistory from '../models/transporterhistory.model.js'
 // ## Dashboard Controller ##
 export const checkUser = async (req, res) => {
     try {

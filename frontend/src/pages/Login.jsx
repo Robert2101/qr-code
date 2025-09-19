@@ -21,16 +21,13 @@ export default function Login() {
         if (role === "user") {
             await loginUser({ email, password });
             // Navigation is handled by App.jsx, but we can push it here for faster UX
-            navigate("/dashboard");
+
         } else if (role === "transporter") {
             await loginTransporter({ email, password });
-            navigate("/transporter-dashboard");
         } else if (role === "recycler") { // <-- ADDED RECYCLER LOGIC
             await loginRecycler({ email, password });
-            navigate("/recycler-dashboard");
         } else if (role === "admin") {
             await loginAdmin({ email, password });
-            navigate("/admin/dashboard");
         }
     };
 
