@@ -209,6 +209,11 @@ export default function Login() {
                                     />
                                 </div>
                             </motion.div>
+                            <motion.div variants={itemVariants} className="text-right text-sm">
+                                <Link to="/forgot-password" className="font-medium text-green-600 hover:text-green-500">
+                                    Forgot your password?
+                                </Link>
+                            </motion.div>
 
                             {/* Submit Button */}
                             <motion.div variants={itemVariants}>

@@ -51,6 +51,30 @@ export const useAuthStore = create((set) => ({
         }
     },
 
+    sendPasswordResetOtp: async (data) => {
+        try {
+            const res = await axios.post(`${API_URL}/api/auth/forgot-password`, data);
+            toast.success(res.data.message);
+            return res.data;
+        } catch (error) {
+            console.error("Forgot Password failed:", error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "Failed to send OTP!");
+            throw error;
+        }
+    },
+
+    resetPasswordWithOtp: async (data) => {
+        try {
+            const res = await axios.post(`${API_URL}/api/auth/reset-password`, data);
+            toast.success(res.data.message);
+            return res.data;
+        } catch (error) {
+            console.error("Reset Password failed:", error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "Failed to reset password!");
+            throw error;
+        }
+    },
+
     // --- Transporter login/register ---
     loginTransporter: async (data) => {
         try {

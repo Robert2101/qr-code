@@ -166,6 +166,71 @@ const verifyOtp = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+        const { mobile } = req.body;
+        const user = await User.findOne({ mobile });
+
+        if (!user) {
+            return res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+        }
+
+        const otp = otpGenerator.generate(6, {
+            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
+        });
+
+        user.otp = await bcrypt.hash(otp, 10);
+        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+
+        await user.save();
+        await sendVerificationSms(mobile, otp);
+
+        res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+
+    } catch (error) {
+        console.error("Forgot Password error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// --- FIX: Removed 'export' from the function definition ---
+const resetPassword = async (req, res) => {
+    try {
+        const { mobile, otp, newPassword } = req.body;
+
+        if (!mobile || !otp || !newPassword) {
+            return res.status(400).json({ message: "Mobile, OTP, and new password are required." });
+        }
+
+        const user = await User.findOne({
+            mobile,
+            otpExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
+        }
+
+        const isMatch = await bcrypt.compare(otp, user.otp);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid OTP." });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
+
+        res.status(200).json({ message: "Password has been reset successfully. Please log in." });
+
+    } catch (error) {
+        console.error("Reset Password error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+
 const logout = (req, res) => {
     try {
         res.cookie("jwt", "", { maxAge: 0 });
@@ -293,4 +358,4 @@ const getWallet = async (req, res) => {
     }
 };
 
-export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet, verifyOtp };
+export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet, verifyOtp, forgotPassword, resetPassword };
