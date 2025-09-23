@@ -201,11 +201,16 @@ export const getAllTransporters = async (req, res) => {
  */
 export const createTransporter = async (req, res) => {
     try {
-        const { name, email, password, vehicleInfo } = req.body;
+        // Handles new `mobile` field and nested `vehicleInfo` object
+        const { name, email, mobile, password, vehicleInfo } = req.body;
 
-        const existingTransporter = await Transporter.findOne({ email });
+        if (!mobile || !password || !vehicleInfo?.licensePlate) {
+            return res.status(400).json({ error: "Mobile, password, and license plate are required." });
+        }
+
+        const existingTransporter = await Transporter.findOne({ $or: [{ email }, { mobile }] });
         if (existingTransporter) {
-            return res.status(400).json({ error: "Transporter with this email already exists." });
+            return res.status(400).json({ error: "Transporter with this email or mobile already exists." });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -214,15 +219,15 @@ export const createTransporter = async (req, res) => {
         const newTransporter = new Transporter({
             name,
             email,
+            mobile,
             password: hashedPassword,
             vehicleInfo
         });
 
         await newTransporter.save();
-
-        res.status(201).json({ 
+        res.status(201).json({
             message: "Transporter created successfully",
-            transporterId: newTransporter._id 
+            transporter: newTransporter
         });
     } catch (error) {
         console.error("Error in createTransporter: ", error.message);
@@ -230,31 +235,27 @@ export const createTransporter = async (req, res) => {
     }
 };
 
-/**
- * @description Updates a specific transporter's profile or vehicle information.
- * @route PUT /api/admin/transporters/:id
- */
+// ## UPDATED ##
 export const updateTransporterById = async (req, res) => {
     try {
-        // Exclude password from being updated this way
-        const { name, email, vehicleInfo, walletBalance } = req.body;
-
+        // Handles mobile, walletBalance, and nested vehicleInfo object
+        const { name, email, mobile, vehicleInfo, walletBalance } = req.body;
         const updatedTransporter = await Transporter.findByIdAndUpdate(
-            req.params.id, 
-            { name, email, vehicleInfo, walletBalance },
+            req.params.id,
+            { name, email, mobile, vehicleInfo, walletBalance },
             { new: true, runValidators: true }
         ).select('-password');
-        
+
         if (!updatedTransporter) {
             return res.status(404).json({ error: "Transporter not found" });
         }
-
         res.status(200).json(updatedTransporter);
     } catch (error) {
         console.error("Error in updateTransporterById: ", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
 
 
 /**
@@ -456,11 +457,16 @@ export const getAllRecyclers = async (req, res) => {
  */
 export const createRecycler = async (req, res) => {
     try {
-        const { name, email, password, location } = req.body;
-        
-        const existingRecycler = await Recycler.findOne({ email });
+        // Handles new `mobile` field and nested `location` object
+        const { name, email, mobile, password, location } = req.body;
+
+        if (!mobile || !password || !location?.address) {
+            return res.status(400).json({ error: "Mobile, password, and address are required." });
+        }
+
+        const existingRecycler = await Recycler.findOne({ $or: [{ email }, { mobile }] });
         if (existingRecycler) {
-            return res.status(400).json({ error: "Recycler with this email already exists." });
+            return res.status(400).json({ error: "Recycler with this email or mobile already exists." });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -469,15 +475,15 @@ export const createRecycler = async (req, res) => {
         const newRecycler = new Recycler({
             name,
             email,
+            mobile,
             password: hashedPassword,
             location
         });
 
         await newRecycler.save();
-        
-        res.status(201).json({ 
+        res.status(201).json({
             message: "Recycler created successfully",
-            recyclerId: newRecycler._id 
+            recycler: newRecycler
         });
     } catch (error) {
         console.error("Error in createRecycler: ", error.message);
@@ -485,25 +491,20 @@ export const createRecycler = async (req, res) => {
     }
 };
 
-/**
- * @description Updates a specific recycler's profile information.
- * @route PUT /api/admin/recyclers/:id
- */
+// ## UPDATED ##
 export const updateRecyclerById = async (req, res) => {
     try {
-        // Exclude password from being updated this way
-        const { name, email, location } = req.body;
-
+        // Handles mobile and nested location object
+        const { name, email, mobile, location } = req.body;
         const updatedRecycler = await Recycler.findByIdAndUpdate(
-            req.params.id, 
-            { name, email, location },
+            req.params.id,
+            { name, email, mobile, location },
             { new: true, runValidators: true }
         ).select('-password');
-        
+
         if (!updatedRecycler) {
             return res.status(404).json({ error: "Recycler not found" });
         }
-
         res.status(200).json(updatedRecycler);
     } catch (error) {
         console.error("Error in updateRecyclerById: ", error.message);

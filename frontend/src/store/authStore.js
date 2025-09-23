@@ -27,11 +27,27 @@ export const useAuthStore = create((set) => ({
     registerUser: async (data) => {
         try {
             const res = await axios.post(`${API_URL}/api/auth/register`, data);
-            set({ currentUser: res.data.user, role: "user" });
-            toast.success("User registered successfully!");
+            toast.success(res.data.message); // e.g., "An OTP has been sent..."
+            return res.data; // Return the response which contains the mobile number
         } catch (error) {
             console.error("Register user failed:", error.response?.data || error.message);
             toast.error(error.response?.data?.message || "User registration failed!");
+            throw error; // Throw error to be caught in the component
+        }
+    },
+
+    // --- NEW function to verify OTP and login ---
+    verifyOtpAndLogin: async (data) => {
+        try {
+            const res = await axios.post(`${API_URL}/api/auth/verify-otp`, data);
+            // On successful verification, the backend sends back the user data and token (in a cookie)
+            set({ currentUser: res.data.user, role: "user" });
+            toast.success("Account verified successfully!");
+            return res.data;
+        } catch (error) {
+            console.error("OTP Verification failed:", error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "OTP Verification failed!");
+            throw error;
         }
     },
 

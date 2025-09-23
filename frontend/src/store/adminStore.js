@@ -142,24 +142,21 @@ const useAdminStore = create((set, get) => ({
     },
 
     updateUserById: async (userId, updateData) => {
-        set({ loading: true });
         try {
             const res = await toast.promise(
                 axios.put(`${ADMIN_API_URL}/users/${userId}`, updateData),
                 {
                     loading: "Updating user...",
                     success: "User updated successfully!",
-                    error: (err) => err.response?.data?.message || "Failed to update user",
+                    error: (err) => err.response?.data?.message || "Update failed!",
                 }
             );
-            // Update the users array with the updated user
             set((state) => ({
                 users: state.users.map((user) => (user._id === userId ? res.data : user)),
             }));
+            return res.data;
         } catch (error) {
-            console.error("Update user failed:", error.response?.data || error.message);
-        } finally {
-            set({ loading: false });
+            console.error("Update user failed:", error);
         }
     },
 
@@ -297,14 +294,17 @@ const useAdminStore = create((set, get) => ({
     
     updateRecycler: async (id, data) => {
         try {
-            await toast.promise(axios.put(`${ADMIN_API_URL}/recyclers/${id}`, data), {
+            const res = await toast.promise(axios.put(`${ADMIN_API_URL}/recyclers/${id}`, data), {
                 loading: "Updating recycler...",
                 success: "Recycler updated successfully!",
                 error: (err) => err.response?.data?.message || "Update failed!",
             });
-            get().getAllRecyclers(); // Refresh the list after update
+            // Update the state with the returned data
+            set(state => ({
+                recyclers: state.recyclers.map(r => r._id === id ? res.data : r)
+            }));
         } catch (error) {
-            console.error("Update recycler failed:", error.response?.data || error.message);
+            console.error("Update recycler failed:", error);
         }
     },
 }));

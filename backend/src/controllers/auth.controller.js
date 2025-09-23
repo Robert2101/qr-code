@@ -4,6 +4,8 @@ import cloudinary from "../config/cloudinary.js";
 import User from "../models/user.model.js";
 import { generateToken } from "../utils/jwt.js";
 import Collection from "../models/collection.model.js";
+import otpGenerator from 'otp-generator';
+import { sendVerificationSms } from '../utils/sms.js';
 
 const login = async (req, res) => {
     try {
@@ -57,62 +59,109 @@ const register = async (req, res) => {
     try {
         const { name, email, mobile, password, street, city, state, pinCode } = req.body;
 
-        if (!name || !mobile || !password || !street || !city || !state || !pinCode) {
-            return res.status(400).json({ message: "Name, mobile, password, and address are required" });
+        if (!name || !mobile || !password) {
+            return res.status(400).json({ message: "Name, mobile, and password are required" });
         }
 
-        // Check if user exists with the same mobile number
-        const existingUserByMobile = await User.findOne({ mobile });
-        if (existingUserByMobile) {
-            return res.status(400).json({ message: "Mobile number is already registered" });
+        let user = await User.findOne({ mobile });
+
+        // If user exists and is already verified, block registration
+        if (user && user.isVerified) {
+            return res.status(400).json({ message: "This mobile number is already registered and verified." });
         }
 
-        // If email is provided, check if it's already in use
-        if (email) {
-            const existingUserByEmail = await User.findOne({ email });
-            if (existingUserByEmail) {
-                return res.status(400).json({ message: "Email is already in use" });
-            }
-        }
+        // Generate a 6-digit numeric OTP
+        const otp = otpGenerator.generate(6, {
+            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
+        });
 
+        // Set OTP expiry to 10 minutes from now
+        const otpExpires = Date.now() + 10 * 60 * 1000;
+        const hashedOtp = await bcrypt.hash(otp, 10);
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await User.create({
-            name,
-            email, // Email is optional
-            mobile,
-            password: hashedPassword,
-            address: {
-                street,
-                city,
-                state,
-                pinCode
-            }
-        });
+        // If user exists (but is not verified), update them. Otherwise, create a new one.
+        if (user) {
+            user.name = name;
+            user.email = email;
+            user.password = hashedPassword;
+            user.address = { street, city, state, pinCode };
+            user.otp = hashedOtp;
+            user.otpExpires = otpExpires;
+            await user.save();
+        } else {
+            user = await User.create({
+                name,
+                email,
+                mobile,
+                password: hashedPassword,
+                address: { street, city, state, pinCode },
+                otp: hashedOtp,
+                otpExpires: otpExpires,
+            });
+        }
 
-        const qrDataUrl = await QRCode.toDataURL(newUser._id.toString());
-
-        const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
-            folder: "qr_codes",
-            public_id: `qr_${newUser._id}`,
-            overwrite: true
-        });
-
-        newUser.qrCodeUrl = uploadResult.secure_url;
-        await newUser.save();
-
-        generateToken(newUser._id, res);
-
-        // Exclude password from the returned user object
-        const { password: pwd, ...userResponse } = newUser.toObject();
+        // Send the SMS
+        await sendVerificationSms(mobile, otp);
 
         res.status(201).json({
-            message: "User registered successfully",
-            user: userResponse
+            message: `Registration successful! An OTP has been sent to ${mobile}.`,
+            // Send mobile number back to the frontend to use on the verification screen
+            data: { mobile: user.mobile }
         });
 
     } catch (error) {
         console.error("Registration error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const verifyOtp = async (req, res) => {
+    try {
+        const { mobile, otp } = req.body;
+
+        const user = await User.findOne({
+            mobile,
+            otpExpires: { $gt: Date.now() } // Check that OTP is not expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
+        }
+
+        const isMatch = await bcrypt.compare(otp, user.otp);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid OTP." });
+        }
+
+        // --- Verification Success ---
+        user.isVerified = true;
+        user.otp = undefined;       // Clear OTP fields for security
+        user.otpExpires = undefined;
+
+        // Generate and upload QR code now that user is fully verified
+        const qrDataUrl = await QRCode.toDataURL(user._id.toString());
+        const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
+            folder: "qr_codes",
+            public_id: `qr_${user._id}`,
+            overwrite: true
+        });
+        user.qrCodeUrl = uploadResult.secure_url;
+
+        await user.save();
+
+        // Generate JWT token and log them in
+        generateToken(user._id, res);
+
+        const { password: pwd, ...userResponse } = user.toObject();
+
+        res.status(200).json({
+            message: "Account verified successfully!",
+            user: userResponse
+        });
+
+    } catch (error) {
+        console.error("OTP Verification error:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -244,4 +293,4 @@ const getWallet = async (req, res) => {
     }
 };
 
-export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet };
+export { login, register, logout, updateProfile, checkUser, getQR, getCollections, getWallet, verifyOtp };

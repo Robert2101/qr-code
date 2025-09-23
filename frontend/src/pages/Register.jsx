@@ -2,14 +2,16 @@ import React, { useState } from "react";
 import { useAuthStore } from "../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import toast from 'react-hot-toast';
 
 const Register = () => {
     const { registerUser, registerTransporter } = useAuthStore();
     const navigate = useNavigate();
     const [role, setRole] = useState("user");
+    const [loading, setLoading] = useState(false); // State to handle submission process
     const [formData, setFormData] = useState({
         name: "",
-        mobile: "", // Added mobile field
+        mobile: "",
         email: "",
         password: "",
         street: "",
@@ -26,30 +28,50 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
 
-        if (role === "user") {
-            await registerUser({
-                name: formData.name,
-                mobile: formData.mobile, // Pass mobile number
-                email: formData.email,
-                password: formData.password,
-                street: formData.street,
-                city: formData.city,
-                state: formData.state,
-                pinCode: formData.pinCode,
-            });
-        } else {
-            await registerTransporter({
-                name: formData.name,
-                mobile: formData.mobile, // Pass mobile number
-                email: formData.email,
-                password: formData.password,
-                vehicleModel: formData.vehicleModel,
-                licensePlate: formData.licensePlate,
-            });
+        try {
+            let response;
+            if (role === "user") {
+                response = await registerUser({
+                    name: formData.name,
+                    mobile: formData.mobile,
+                    email: formData.email,
+                    password: formData.password,
+                    street: formData.street,
+                    city: formData.city,
+                    state: formData.state,
+                    pinCode: formData.pinCode,
+                });
+            } else {
+                // Assuming registerTransporter is also updated to send an OTP
+                response = await registerTransporter({
+                    name: formData.name,
+                    mobile: formData.mobile,
+                    email: formData.email,
+                    password: formData.password,
+                    vehicleModel: formData.vehicleModel,
+                    licensePlate: formData.licensePlate,
+                });
+            }
+
+            // If the API call is successful, navigate to the OTP page
+            // and pass the mobile number in the route's state
+            if (response && response.data.mobile) {
+                navigate('/verify-otp', {
+                    state: { mobile: response.data.mobile }
+                });
+            } else {
+                // This is a fallback in case the API response is not as expected
+                toast.error("Something went wrong. Please try registering again.");
+            }
+
+        } catch (error) {
+            // Error toasts are handled in the Zustand store
+            console.error("Registration submission failed:", error);
+        } finally {
+            setLoading(false);
         }
-
-        navigate("/dashboard");
     };
 
     // Animation variants
@@ -359,12 +381,13 @@ const Register = () => {
                             <motion.div variants={itemVariants}>
                                 <motion.button
                                     type="submit"
-                                    className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
+                                    disabled={loading}
+                                    className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center disabled:bg-gray-400"
+                                    whileHover={{ scale: loading ? 1 : 1.02 }}
+                                    whileTap={{ scale: loading ? 1 : 0.98 }}
                                 >
-                                    <span>Create Account</span>
-                                    <span className="ml-2">→</span>
+                                    <span>{loading ? 'Processing...' : 'Create Account'}</span>
+                                    <span className="ml-2">{loading ? '⏳' : '→'}</span>
                                 </motion.button>
                             </motion.div>
 
