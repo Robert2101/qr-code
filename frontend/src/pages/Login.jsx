@@ -5,7 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 export default function Login() {
-    const [email, setEmail] = useState("");
+    const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
     const [role, setRole] = useState("user"); // Default role
 
@@ -17,17 +17,25 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Data for user, transporter, recycler
+        const credentials = { loginId, password };
+        // Admin login might still strictly expect an 'email' on the backend.
+        const adminCredentials = { email: loginId, password };
+
         // Handle login based on the selected role
         if (role === "user") {
-            await loginUser({ email, password });
-            // Navigation is handled by App.jsx, but we can push it here for faster UX
-
+            await loginUser(credentials);
+            navigate("/dashboard");
         } else if (role === "transporter") {
-            await loginTransporter({ email, password });
-        } else if (role === "recycler") { // <-- ADDED RECYCLER LOGIC
-            await loginRecycler({ email, password });
+            await loginTransporter(credentials);
+            navigate("/transporter-dashboard");
+        } else if (role === "recycler") {
+            await loginRecycler(credentials);
+            navigate("/recycler-dashboard");
         } else if (role === "admin") {
-            await loginAdmin({ email, password });
+            await loginAdmin(adminCredentials);
+            navigate("/admin/dashboard");
         }
     };
 
@@ -134,7 +142,7 @@ export default function Login() {
                                 <p className="text-gray-600 mt-2">Sign in to your account</p>
                             </motion.div>
 
-                            {/* Role Selector - UPDATED */}
+                            {/* Role Selector */}
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     I am a
@@ -143,7 +151,7 @@ export default function Login() {
                                     {[
                                         { value: "user", label: "User", icon: "👤" },
                                         { value: "transporter", label: "Transporter", icon: "🚚" },
-                                        { value: "recycler", label: "Recycler", icon: "♻️" }, // <-- ADDED RECYCLER
+                                        { value: "recycler", label: "Recycler", icon: "♻️" },
                                         { value: "admin", label: "Admin", icon: "⚙️" }
                                     ].map((option) => (
                                         <button
@@ -162,20 +170,20 @@ export default function Login() {
                                 </div>
                             </motion.div>
 
-                            {/* Email Input */}
+                            {/* Email or Mobile Input */}
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address
+                                    Email or Mobile Number
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span className="text-gray-400">📧</span>
                                     </div>
                                     <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="Enter your email"
+                                        type="text"
+                                        value={loginId}
+                                        onChange={(e) => setLoginId(e.target.value)}
+                                        placeholder="Enter your email or mobile"
                                         className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                                         required
                                     />

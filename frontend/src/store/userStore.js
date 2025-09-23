@@ -25,7 +25,7 @@ export const useUserStore = create((set) => ({
             set((state) => ({
                 loading: { ...state.loading, profile: false },
             }));
-            toast.success("Profile updated successfully ✅"); 
+            toast.success("Profile updated successfully ✅");
             return res.data;
         } catch (err) {
             set((state) => ({

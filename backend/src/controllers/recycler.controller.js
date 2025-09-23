@@ -2,30 +2,40 @@ import bcrypt from "bcryptjs";
 import { generateToken } from "../utils/jwt.js";
 import Recycler from "../models/recycler.model.js";
 import Collection from "../models/collection.model.js";
-import Transporter from "../models/transporter.model.js"
+import Transporter from "../models/transporter.model.js";
+
 const register = async (req, res) => {
     try {
-        const { name, email, password, address, city, state, zipCode } = req.body;
-        console.log("📥 Registration request received for:", { name, email });
+        const { name, email, mobile, password, address, city, state, zipCode } = req.body;
+        console.log("📥 Registration request received for:", { name, mobile, email });
 
-        if (!name || !email || !password || !address || !city || !state || !zipCode) {
+        if (!name || !mobile || !password || !address || !city || !state || !zipCode) {
             console.warn("⚠️ Missing required fields for registration.");
-            return res.status(400).json({ message: "All fields are required" });
+            return res.status(400).json({ message: "Name, mobile, password, and full address are required" });
         }
 
-        const existingRecycler = await Recycler.findOne({ email });
-        if (existingRecycler) {
-            console.warn("❌ Registration failed: Email already exists:", email);
-            return res.status(409).json({ message: "Recycler with this email already exists" });
+        const existingRecyclerByMobile = await Recycler.findOne({ mobile });
+        if (existingRecyclerByMobile) {
+            console.warn("❌ Registration failed: Mobile number already exists:", mobile);
+            return res.status(409).json({ message: "Recycler with this mobile number already exists" });
+        }
+
+        if (email) {
+            const existingRecyclerByEmail = await Recycler.findOne({ email });
+            if (existingRecyclerByEmail) {
+                console.warn("❌ Registration failed: Email already exists:", email);
+                return res.status(409).json({ message: "Recycler with this email already exists" });
+            }
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        console.log("🔑 Password hashed for user:", email);
+        console.log("🔑 Password hashed for recycler:", mobile);
 
         const newRecycler = new Recycler({
             name,
             email,
+            mobile,
             password: hashedPassword,
             location: {
                 address,
@@ -38,15 +48,13 @@ const register = async (req, res) => {
         await newRecycler.save();
         console.log("✅ New recycler saved to database with ID:", newRecycler._id);
 
-        // 5. Generate the JWT using the utility function
-        const token = generateToken(newRecycler._id,res);
+        generateToken(newRecycler._id, res);
         console.log("✅ Token generated for new recycler:", newRecycler._id);
 
         const { password: pwd, ...recyclerData } = newRecycler.toObject();
 
         res.status(201).json({
             message: "Recycler registered successfully",
-            token,
             recycler: recyclerData
         });
 
@@ -59,31 +67,32 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        console.log("📥 Login request received for:", { email });
+        const { loginId, password } = req.body; // loginId can be email or mobile
+        console.log("📥 Login request received for:", { loginId });
 
-        if (!email || !password) {
-            console.warn("⚠️ Missing email or password for login.");
-            return res.status(400).json({ message: "Please provide both email and password" });
+        if (!loginId || !password) {
+            console.warn("⚠️ Missing login identifier or password.");
+            return res.status(400).json({ message: "Please provide both your identifier and password" });
         }
 
-        const recycler = await Recycler.findOne({ email });
-        console.log("🔍 Recycler lookup result:", recycler ? recycler.email : "Not found");
+        const recycler = await Recycler.findOne({
+            $or: [{ email: loginId }, { mobile: loginId }]
+        });
+        console.log("🔍 Recycler lookup result:", recycler ? recycler._id : "Not found");
 
         if (!recycler || !(await bcrypt.compare(password, recycler.password))) {
-            console.warn("❌ Login failed: Invalid credentials for email:", email);
-            return res.status(401).json({ message: "Invalid email or password" });
+            console.warn("❌ Login failed: Invalid credentials for:", loginId);
+            return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        const token = generateToken(recycler._id, res);
-        console.log("✅ Token generated for user:", recycler._id);
+        generateToken(recycler._id, res);
+        console.log("✅ Token generated for recycler:", recycler._id);
 
         const { password: pwd, ...recyclerData } = recycler.toObject();
         console.log("✅ Login successful. Recycler data:", recyclerData);
 
         res.status(200).json({
             message: "Login successful",
-            token,
             recycler: recyclerData
         });
 
@@ -103,15 +112,16 @@ const logout = (req, res) => {
     }
 };
 
-const checkUser = (req, res) => {
-    // The recyclerMiddleware has already done the heavy lifting:
-    // 1. Verified the JWT from the cookie.
-    // 2. Found the recycler in the database.
-    // 3. Attached the recycler's data to `req.user`.
-    // So, we just need to send back the `req.user` object.
+const checkUser = async (req, res) => {
     try {
-        console.log("✅ checkUser successful for:", req.user.email);
-        res.status(200).json({ recycler: req.user });
+        // The middleware has already populated req.user with an ID
+        const recycler = await Recycler.findById(req.user.id).select("-password");
+        if (!recycler) {
+            return res.status(404).json({ message: "Recycler not found" });
+        }
+        console.log("✅ checkUser successful for:", recycler.mobile || recycler.email);
+        // --- FIX: Changed "user" key to "recycler" to match frontend expectation ---
+        res.status(200).json({ recycler: recycler });
     } catch (error) {
         console.error("💥 Error in checkUser:", error);
         res.status(500).json({ message: "Server error" });
@@ -120,36 +130,44 @@ const checkUser = (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        // The ID of the logged-in user is available from the middleware
-        const recyclerId = req.user._id;
-        console.log(`📥 Profile update request received for user ID: ${recyclerId}`);
+        const recyclerId = req.user.id;
+        const { name, email, mobile, address, city, state, zipCode } = req.body;
 
-        // Find the most current version of the recycler from the DB
-        const recycler = await Recycler.findById(recyclerId);
+        const updateData = { location: {} };
+        if (name) updateData.name = name;
 
-        if (!recycler) {
-            console.warn(`❌ Profile update failed: Recycler not found with ID: ${recyclerId}`);
+        // Handle uniqueness constraints if email/mobile are being updated
+        if (email) {
+            const existing = await Recycler.findOne({ email, _id: { $ne: recyclerId } });
+            if (existing) return res.status(409).json({ message: "Email is already in use." });
+            updateData.email = email;
+        }
+        if (mobile) {
+            const existing = await Recycler.findOne({ mobile, _id: { $ne: recyclerId } });
+            if (existing) return res.status(409).json({ message: "Mobile number is already in use." });
+            updateData.mobile = mobile;
+        }
+
+        // Fetch current user to merge address fields
+        const currentUser = await Recycler.findById(recyclerId);
+        updateData.location.address = address || currentUser.location.address;
+        updateData.location.city = city || currentUser.location.city;
+        updateData.location.state = state || currentUser.location.state;
+        updateData.location.zipCode = zipCode || currentUser.location.zipCode;
+
+        const updatedRecycler = await Recycler.findByIdAndUpdate(
+            recyclerId,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).select("-password");
+
+        if (!updatedRecycler) {
             return res.status(404).json({ message: "Recycler not found" });
         }
 
-        // Update fields only if they are provided in the request body
-        recycler.name = req.body.name || recycler.name;
-        recycler.email = req.body.email || recycler.email;
-        recycler.location.address = req.body.address || recycler.location.address;
-        recycler.location.city = req.body.city || recycler.location.city;
-        recycler.location.state = req.body.state || recycler.location.state;
-        recycler.location.zipCode = req.body.zipCode || recycler.location.zipCode;
-
-        // Save the updated document
-        const updatedRecycler = await recycler.save();
-        console.log(`✅ Profile updated successfully for user ID: ${recyclerId}`);
-
-        // Prepare the response object, excluding the password
-        const { password, ...recyclerData } = updatedRecycler.toObject();
-
         res.status(200).json({
             message: "Profile updated successfully",
-            recycler: recyclerData
+            recycler: updatedRecycler
         });
 
     } catch (error) {
@@ -160,80 +178,40 @@ const updateProfile = async (req, res) => {
 
 const scanQRCode = async (req, res) => {
     try {
-        console.log("📌 Incoming scan request body:", req.body);
-        console.log("📌 Incoming user from middleware:", req.user);
-
         const { scannedTransporterId } = req.body;
-        const recyclerId = req.user?._id;
-        const recyclerName = req.user?.name;
+        const recyclerId = req.user?.id;
 
         if (!recyclerId) {
-            console.warn("⚠️ No recyclerId found in req.user");
-            return res.status(401).json({ message: "Unauthorized: Recycler not found in request." });
+            return res.status(401).json({ message: "Unauthorized: Recycler ID missing." });
         }
-
         if (!scannedTransporterId) {
-            console.warn("⚠️ scannedTransporterId missing in request body");
-            return res.status(400).json({ message: "Scanned QR code is invalid or empty." });
+            return res.status(400).json({ message: "Scanned QR code data is missing." });
         }
 
-        console.log(`🔍 Checking transporter with ID: ${scannedTransporterId}`);
-        const transporterExists = await Transporter.findById(scannedTransporterId);
-
-        if (!transporterExists) {
-            console.warn(`❌ No transporter found with ID: ${scannedTransporterId}`);
-            return res.status(404).json({ message: "Transporter not found. The QR code may be invalid." });
+        const transporter = await Transporter.findById(scannedTransporterId);
+        if (!transporter) {
+            return res.status(404).json({ message: "Transporter not found from QR code." });
         }
 
-        console.log(`✅ Recycler ${recyclerName} (${recyclerId}) is claiming collections from Transporter ${transporterExists.name} (${transporterExists._id})`);
+        const updateResult = await Collection.updateMany(
+            {
+                transporter: scannedTransporterId,
+                status: 'Collected',
+                recycler: { $exists: false }
+            },
+            { $set: { recycler: recyclerId, status: "Trash Dumped" } }
+        );
 
-        console.log("🔍 Searching for collections with status 'Collected' and no recycler...");
-        const collectionsToClaim = await Collection.find({
-            transporter: scannedTransporterId,
-            status: 'Collected',
-            recycler: { $exists: false }
-        });
-
-        console.log(`📊 Found ${collectionsToClaim.length} collections to claim.`);
-
-        if (collectionsToClaim.length === 0) {
-            console.log(`ℹ️ No collections ready to claim for transporter ${transporterExists.name}`);
+        if (updateResult.modifiedCount === 0) {
             return res.status(200).json({
-                message: "No new collected items were available to be claimed from this transporter.",
+                message: `No new collections were available to be claimed from ${transporter.name}.`,
                 claimedCount: 0
             });
         }
 
-        let estimatedTotalWeight = 0;
-        const estimatedCategoricalWeights = { wet: 0, dry: 0, hazardous: 0 };
-        const collectionIdsToUpdate = [];
-
-        for (const collection of collectionsToClaim) {
-            console.log(`📦 Processing collection ${collection._id}, weight: ${collection.weight}, wasteTypes:`, collection.wasteTypes);
-            estimatedTotalWeight += collection.weight || 0;
-            estimatedCategoricalWeights.wet += collection.wasteTypes?.wet || 0;
-            estimatedCategoricalWeights.dry += collection.wasteTypes?.dry || 0;
-            estimatedCategoricalWeights.hazardous += collection.wasteTypes?.hazardous || 0;
-            collectionIdsToUpdate.push(collection._id);
-        }
-
-        console.log("📌 Total weight:", estimatedTotalWeight);
-        console.log("📌 Categorical weights:", estimatedCategoricalWeights);
-        console.log("📌 Collection IDs to update:", collectionIdsToUpdate);
-
-        if (collectionIdsToUpdate.length > 0) {
-            const updateResult = await Collection.updateMany(
-                { _id: { $in: collectionIdsToUpdate } },
-                { $set: { recycler: recyclerId, status: "Trash Dumped" } }
-            );
-            console.log(`✅ Updated ${updateResult.modifiedCount} collections to Claimed for recycler ${recyclerName}`);
-        }
-
         res.status(200).json({
-            message: `Successfully claimed ${collectionsToClaim.length} collections from ${transporterExists.name}.`,
-            claimedCount: collectionsToClaim.length,
-            estimatedTotalWeight,
-            estimatedCategoricalWeights
+            message: `Successfully claimed ${updateResult.modifiedCount} collections from ${transporter.name}.`,
+            claimedCount: updateResult.modifiedCount,
         });
 
     } catch (error) {
@@ -244,21 +222,19 @@ const scanQRCode = async (req, res) => {
 
 const getRecyclerHistory = async (req, res) => {
     try {
-        const recyclerId = req.user._id;
+        const recyclerId = req.user.id;
         console.log(`🔍 Fetching history for recycler ID: ${recyclerId}`);
 
-        // Find all collections assigned to this recycler
-        // Populate user and transporter details to show their names
         const history = await Collection.find({ recycler: recyclerId })
             .populate('user', 'name')
             .populate('transporter', 'name')
-            .sort({ updatedAt: -1 }); // Show most recent first
+            .sort({ updatedAt: -1 });
 
-        if (!history) {
-            return res.status(200).json({ history: [] });
+        if (!history || history.length === 0) {
+            return res.status(200).json({ message: "No history found.", history: [] });
         }
 
-        console.log(`✅ Found ${history.length} history records for recycler ${req.user.name}.`);
+        console.log(`✅ Found ${history.length} history records for recycler.`);
         res.status(200).json({ history });
 
     } catch (error) {

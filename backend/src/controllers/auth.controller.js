@@ -7,28 +7,31 @@ import Collection from "../models/collection.model.js";
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        console.log("📥 Login request received:", { email, password }); // log raw input (⚠️ remove in production)
+        const { loginId, password } = req.body; // loginId can be email or mobile
+        console.log("📥 Login request received:", { loginId });
 
-        if (!email || !password) {
-            console.warn("⚠️ Missing email or password");
-            return res.status(400).json({ message: "Please enter email and password" });
+        if (!loginId || !password) {
+            console.warn("⚠️ Missing login identifier or password");
+            return res.status(400).json({ message: "Please enter your email/mobile and password" });
         }
 
-        const user = await User.findOne({ email });
-        console.log("🔍 User lookup result:", user ? user.email : "Not found");
+        // Find user by either email or mobile number
+        const user = await User.findOne({
+            $or: [{ email: loginId }, { mobile: loginId }],
+        });
+        console.log("🔍 User lookup result:", user ? user._id : "Not found");
 
         if (!user) {
-            console.warn("❌ Login failed: User not found for email:", email);
-            return res.status(401).json({ message: "Invalid email or password" });
+            console.warn("❌ Login failed: User not found for:", loginId);
+            return res.status(401).json({ message: "Invalid credentials" });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         console.log("🔑 Password match:", isMatch);
 
         if (!isMatch) {
-            console.warn("❌ Login failed: Password mismatch for email:", email);
-            return res.status(401).json({ message: "Invalid email or password" });
+            console.warn("❌ Login failed: Password mismatch for user:", user._id);
+            return res.status(401).json({ message: "Invalid credentials" });
         }
 
         // Generate token
@@ -52,22 +55,32 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
     try {
-        const { name, email, password, street, city, state, pinCode } = req.body;
+        const { name, email, mobile, password, street, city, state, pinCode } = req.body;
 
-        if (!name || !email || !password || !street || !city || !state || !pinCode) {
-            return res.status(400).json({ message: "All fields are required" });
+        if (!name || !mobile || !password || !street || !city || !state || !pinCode) {
+            return res.status(400).json({ message: "Name, mobile, password, and address are required" });
         }
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
+        // Check if user exists with the same mobile number
+        const existingUserByMobile = await User.findOne({ mobile });
+        if (existingUserByMobile) {
+            return res.status(400).json({ message: "Mobile number is already registered" });
+        }
+
+        // If email is provided, check if it's already in use
+        if (email) {
+            const existingUserByEmail = await User.findOne({ email });
+            if (existingUserByEmail) {
+                return res.status(400).json({ message: "Email is already in use" });
+            }
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = await User.create({
             name,
-            email,
+            email, // Email is optional
+            mobile,
             password: hashedPassword,
             address: {
                 street,
@@ -90,15 +103,12 @@ const register = async (req, res) => {
 
         generateToken(newUser._id, res);
 
+        // Exclude password from the returned user object
+        const { password: pwd, ...userResponse } = newUser.toObject();
+
         res.status(201).json({
             message: "User registered successfully",
-            user: {
-                id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-                address: newUser.address,
-                qrCodeUrl: newUser.qrCodeUrl
-            }
+            user: userResponse
         });
 
     } catch (error) {
@@ -119,7 +129,7 @@ const logout = (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        const userId = req.user.id; 
+        const userId = req.user.id;
 
         const { name, street, city, state, pinCode } = req.body;
 

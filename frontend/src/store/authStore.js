@@ -79,7 +79,6 @@ export const useAuthStore = create((set) => ({
             set((state) => {
                 if (state.role === "user") axios.post(`${API_URL}/api/auth/logout`);
                 if (state.role === "transporter") axios.post(`${API_URL}/api/transporter/logout`);
-                // --- Recycler ---
                 if (state.role === "recycler") axios.post(`${API_URL}/api/recycler/logout`);
 
                 toast.success("Logged out successfully!");
@@ -91,65 +90,53 @@ export const useAuthStore = create((set) => ({
         }
     },
 
+    // --- checkAuth (Added Detailed Logging) ---
     checkAuth: async () => {
+        console.log("--- Starting authentication check ---");
         set({ loading: true });
 
-        try {
-            // 1. First, try to authenticate as a "user"
-            const userRes = await axios.get(`${API_URL}/api/auth/check-user`);
-            if (userRes.data && userRes.data.user) {
-                // SUCCESS: Found a user. Set state in one call and finish.
-                console.log("Authenticated as User.");
-                set({
-                    currentUser: userRes.data.user,
-                    role: "user",
-                    loading: false,
-                });
-                return; // Stop execution here
-            }
-        } catch (userError) {
-            // FAILED: Not a user. Log it and proceed to the next check.
-            console.log("Auth check failed for role: user");
+        const authChecks = [
+            { role: "user", url: `${API_URL}/api/auth/check-user`, key: "user" },
+            { role: "transporter", url: `${API_URL}/api/transporter/check-user`, key: "transporter" },
+            { role: "recycler", url: `${API_URL}/api/recycler/check-user`, key: "recycler" },
+        ];
 
+        for (const check of authChecks) {
+            console.log(`[checkAuth] Attempting to authenticate as: ${check.role}`);
             try {
-                // 2. Second, try to authenticate as a "transporter"
-                const transporterRes = await axios.get(`${API_URL}/api/transporter/check-user`);
-                if (transporterRes.data && transporterRes.data.transporter) {
-                    // SUCCESS: Found a transporter. Set state in one call and finish.
-                    console.log("Authenticated as Transporter.");
+                const res = await axios.get(check.url);
+                console.log(`[checkAuth] Response for ${check.role}:`, res.data); // Log the actual response data
+
+                if (res.data && res.data[check.key]) {
+                    console.log(`✅ [checkAuth] Success! Authenticated as ${check.role}.`);
                     set({
-                        currentUser: transporterRes.data.transporter,
-                        role: "transporter",
+                        currentUser: res.data[check.key],
+                        role: check.role,
                         loading: false,
                     });
-                    return; // Stop execution here
+                    console.log("[checkAuth] State updated. Halting further checks.");
+                    return;
+                } else {
+                    console.log(`[checkAuth] Check for ${check.role} succeeded but no user data found in response.`);
                 }
-            } catch (transporterError) {
-                // FAILED: Not a transporter. Log it and proceed.
-                console.log("Auth check failed for role: transporter");
-
-                try {
-                    // 3. Third, try to authenticate as a "recycler"
-                    const recyclerRes = await axios.get(`${API_URL}/api/recycler/check-user`);
-                    if (recyclerRes.data && recyclerRes.data.recycler) {
-                        // SUCCESS: Found a recycler. Set state in one call and finish.
-                        console.log("Authenticated as Recycler.");
-                        set({
-                            currentUser: recyclerRes.data.recycler,
-                            role: "recycler",
-                            loading: false,
-                        });
-                        return; // Stop execution here
-                    }
-                } catch (recyclerError) {
-                    // FAILED: Not a recycler. Log it and fall through to the final state update.
-                    console.log("Auth check failed for role: recycler");
+            } catch (error) {
+                console.error(`❌ [checkAuth] Auth check failed for role: ${check.role}.`);
+                if (error.response) {
+                    // The request was made and the server responded with a status code
+                    console.error('[checkAuth] Error data:', error.response.data);
+                    console.error('[checkAuth] Error status:', error.response.status);
+                } else if (error.request) {
+                    // The request was made but no response was received
+                    console.error('[checkAuth] No response received:', error.request);
+                } else {
+                    // Something happened in setting up the request that triggered an Error
+                    console.error('[checkAuth] Error setting up request:', error.message);
                 }
             }
         }
 
-        // 4. If none of the above checks succeeded, set the final "logged out" state.
-        console.log("All auth checks failed. Setting logged out state.");
+        // If the loop completes without finding any authenticated user
+        console.log("--- All auth checks completed. No user authenticated. Setting logged out state. ---");
         set({ currentUser: null, role: null, loading: false });
     },
 }));

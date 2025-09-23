@@ -9,6 +9,7 @@ const Register = () => {
     const [role, setRole] = useState("user");
     const [formData, setFormData] = useState({
         name: "",
+        mobile: "", // Added mobile field
         email: "",
         password: "",
         street: "",
@@ -29,6 +30,7 @@ const Register = () => {
         if (role === "user") {
             await registerUser({
                 name: formData.name,
+                mobile: formData.mobile, // Pass mobile number
                 email: formData.email,
                 password: formData.password,
                 street: formData.street,
@@ -39,6 +41,7 @@ const Register = () => {
         } else {
             await registerTransporter({
                 name: formData.name,
+                mobile: formData.mobile, // Pass mobile number
                 email: formData.email,
                 password: formData.password,
                 vehicleModel: formData.vehicleModel,
@@ -141,7 +144,6 @@ const Register = () => {
                             </div>
                         </motion.div>
 
-                        {/* Animated decorative elements */}
                         <motion.div
                             className="absolute top-1/4 right-1/4 bg-white/20 p-3 rounded-full"
                             animate={{
@@ -188,8 +190,8 @@ const Register = () => {
                                         type="button"
                                         onClick={() => setRole(option.value)}
                                         className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${role === option.value
-                                                ? "border-green-500 bg-green-50 text-green-700"
-                                                : "border-gray-200 text-gray-500 hover:border-green-300"
+                                            ? "border-green-500 bg-green-50 text-green-700"
+                                            : "border-gray-200 text-gray-500 hover:border-green-300"
                                             }`}
                                     >
                                         <span className="text-2xl mb-2">{option.icon}</span>
@@ -228,9 +230,30 @@ const Register = () => {
                                 </div>
                             </motion.div>
 
+                            {/* MOBILE NUMBER FIELD - ADDED */}
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address
+                                    Mobile Number
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-400">📱</span>
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        name="mobile"
+                                        placeholder="Your 10-digit mobile number"
+                                        value={formData.mobile}
+                                        onChange={handleChange}
+                                        className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        required
+                                    />
+                                </div>
+                            </motion.div>
+
+                            <motion.div variants={itemVariants}>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address (Optional)
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -243,7 +266,6 @@ const Register = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         className="w-full pl-10 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                        required
                                     />
                                 </div>
                             </motion.div>
@@ -281,7 +303,7 @@ const Register = () => {
                                         { name: "city", placeholder: "City", icon: "🏙️" },
                                         { name: "state", placeholder: "State", icon: "🗺️" },
                                         { name: "pinCode", placeholder: "PIN Code", icon: "📮" }
-                                    ].map((field, index) => (
+                                    ].map((field) => (
                                         <motion.div key={field.name} variants={itemVariants}>
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -313,7 +335,7 @@ const Register = () => {
                                     {[
                                         { name: "vehicleModel", placeholder: "Vehicle Model", icon: "🚗" },
                                         { name: "licensePlate", placeholder: "License Plate Number", icon: "🔢" }
-                                    ].map((field, index) => (
+                                    ].map((field) => (
                                         <motion.div key={field.name} variants={itemVariants}>
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

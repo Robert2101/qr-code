@@ -9,32 +9,41 @@ import User from '../models/user.model.js';
 
 const register = async (req, res) => {
     try {
-        const { name, email, password, vehicleModel, licensePlate } = req.body;
+        const { name, email, mobile, password, vehicleModel, licensePlate } = req.body;
 
         // 1. Validate inputs
-        if (!name || !email || !password || !licensePlate) {
-            return res.status(400).json({ message: "All required fields must be provided" });
+        if (!name || !mobile || !password || !licensePlate) {
+            return res.status(400).json({ message: "Name, mobile, password, and license plate are required" });
         }
 
-        // 2. Check duplicate email
-        const existingTransporter = await Transporter.findOne({ email });
-        if (existingTransporter) {
-            return res.status(400).json({ message: "Transporter already exists" });
+        // 2. Check duplicate mobile
+        const existingTransporterByMobile = await Transporter.findOne({ mobile });
+        if (existingTransporterByMobile) {
+            return res.status(400).json({ message: "Mobile number already registered" });
         }
 
-        // 3. Check duplicate license plate
+        // 3. Check duplicate email if provided
+        if (email) {
+            const existingTransporterByEmail = await Transporter.findOne({ email });
+            if (existingTransporterByEmail) {
+                return res.status(400).json({ message: "Email already registered" });
+            }
+        }
+
+        // 4. Check duplicate license plate
         const existingLicense = await Transporter.findOne({ "vehicleInfo.licensePlate": licensePlate });
         if (existingLicense) {
             return res.status(400).json({ message: "License plate already registered" });
         }
 
-        // 4. Hash password
+        // 5. Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 5. Create transporter (without qrCode yet)
+        // 6. Create transporter (without qrCode yet)
         const newTransporter = await Transporter.create({
             name,
-            email,
+            email, // Optional
+            mobile, // Required
             password: hashedPassword,
             vehicleInfo: {
                 model: vehicleModel || "",
@@ -42,34 +51,28 @@ const register = async (req, res) => {
             }
         });
 
-        // 6. Generate QR code (contains transporter ID)
+        // 7. Generate QR code (contains transporter ID)
         const qrDataUrl = await QRCode.toDataURL(newTransporter._id.toString());
 
-        // 7. Upload QR to cloudinary
+        // 8. Upload QR to cloudinary
         const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
             folder: "qr_codes",
             public_id: `transporter_qr_${newTransporter._id}`,
             overwrite: true
         });
 
-        // 8. Save QR code URL in DB
+        // 9. Save QR code URL in DB
         newTransporter.qrCodeUrl = uploadResult.secure_url;
         await newTransporter.save();
 
-        // 9. Generate token for authentication
+        // 10. Generate token for authentication
         generateToken(newTransporter._id, res);
 
-        // 10. Response
+        // 11. Response
+        const { password: pwd, ...transporterData } = newTransporter.toObject();
         res.status(201).json({
             message: "Transporter registered successfully",
-            transporter: {
-                id: newTransporter._id,
-                name: newTransporter.name,
-                email: newTransporter.email,
-                role: newTransporter.role,
-                vehicleInfo: newTransporter.vehicleInfo,
-                qrCodeUrl: newTransporter.qrCodeUrl
-            }
+            transporter: transporterData
         });
 
     } catch (error) {
@@ -80,15 +83,17 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { loginId, password } = req.body;
 
         // 1. Validate input
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
+        if (!loginId || !password) {
+            return res.status(400).json({ message: "Login ID and password are required" });
         }
 
-        // 2. Find transporter by email
-        const transporter = await Transporter.findOne({ email });
+        // 2. Find transporter by email or mobile
+        const transporter = await Transporter.findOne({
+            $or: [{ email: loginId }, { mobile: loginId }]
+        });
         if (!transporter) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -100,20 +105,13 @@ const login = async (req, res) => {
         }
 
         // 4. Generate JWT token
-        generateToken(transporter._id, res); // sets cookie or returns token in response
+        generateToken(transporter._id, res);
 
         // 5. Respond with transporter info
+        const { password: pwd, ...transporterData } = transporter.toObject();
         res.status(200).json({
             message: "Login successful",
-            transporter: {
-                id: transporter._id,
-                name: transporter.name,
-                email: transporter.email,
-                role: transporter.role,
-                vehicleInfo: transporter.vehicleInfo,
-                qrCodeUrl: transporter.qrCodeUrl,
-                walletBalance: transporter.walletBalance
-            }
+            transporter: transporterData
         });
 
     } catch (error) {
@@ -147,16 +145,7 @@ const checkUser = async (req, res) => {
         // Return transporter info
         res.status(200).json({
             message: "Transporter verified",
-            transporter: {
-                id: transporter._id,
-                name: transporter.name,
-                email: transporter.email,
-                role: transporter.role,
-                vehicleInfo: transporter.vehicleInfo,
-                qrCodeUrl: transporter.qrCodeUrl,
-                walletBalance: transporter.walletBalance,
-                currentLocation: transporter.currentLocation
-            }
+            transporter
         });
 
     } catch (error) {
@@ -178,37 +167,26 @@ const updateProfile = async (req, res) => {
 
         // Update basic fields if provided
         if (name) transporter.name = name;
-        if (email) transporter.email = email;
+
+        // Check for uniqueness if email/mobile are updated
+        if (email) {
+            const existing = await Transporter.findOne({ email, _id: { $ne: transporterId } });
+            if (existing) return res.status(409).json({ message: "Email is already in use." });
+            transporter.email = email;
+        }
+
+        
 
         // Update vehicle info
         if (vehicleModel) transporter.vehicleInfo.model = vehicleModel;
         if (licensePlate) transporter.vehicleInfo.licensePlate = licensePlate;
 
-        // Optional: regenerate QR code if ID or vehicle info changes
-        if (req.body.regenerateQR) {
-            const qrDataUrl = await QRCode.toDataURL(transporter._id.toString());
-            const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
-                folder: "qr_codes",
-                public_id: `transporter_qr_${transporter._id}`,
-                overwrite: true
-            });
-            transporter.qrCodeUrl = uploadResult.secure_url;
-        }
-
         await transporter.save();
 
+        const { password, ...transporterData } = transporter.toObject();
         res.status(200).json({
             message: "Profile updated successfully",
-            transporter: {
-                id: transporter._id,
-                name: transporter.name,
-                email: transporter.email,
-                role: transporter.role,
-                vehicleInfo: transporter.vehicleInfo,
-                qrCodeUrl: transporter.qrCodeUrl,
-                walletBalance: transporter.walletBalance,
-                currentLocation: transporter.currentLocation
-            }
+            transporter: transporterData
         });
 
     } catch (error) {
@@ -218,29 +196,18 @@ const updateProfile = async (req, res) => {
 };
 const scan = async (req, res) => {
     try {
-        console.log("🔍 Incoming scan request...");
-        console.log("➡️ Transporter ID (from token):", req.user?.id);
-        console.log("➡️ Request body:", req.body);
-
         const transporterId = req.user.id; // from protected route
         const { userId, weight, wasteTypes, coordinates } = req.body;
 
-        // Validate required fields
         if (!userId || !weight || !coordinates || coordinates.length !== 2) {
-            console.warn("⚠️ Validation failed:", { userId, weight, coordinates });
             return res.status(400).json({ message: "Required data missing or invalid" });
         }
 
-        // Verify user exists
-        console.log("🔎 Checking if user exists:", userId);
         const user = await User.findById(userId);
         if (!user) {
-            console.warn("❌ User not found:", userId);
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Create Collection record
-        console.log("📦 Creating collection record...");
         const collection = await Collection.create({
             user: userId,
             transporter: transporterId,
@@ -251,48 +218,32 @@ const scan = async (req, res) => {
                 coordinates
             }
         });
-        console.log("✅ Collection created:", collection._id);
 
-        // Update transporter’s current location
-        console.log("🛠 Updating transporter location...");
         await Transporter.findByIdAndUpdate(transporterId, {
             currentLocation: { type: "Point", coordinates }
         });
-        console.log("✅ Transporter location updated");
 
-        // Prepare date key for today
         const today = new Date();
-        const dateKey = new Date(today.setHours(0, 0, 0, 0)); // midnight timestamp
-        console.log("📅 Date key:", dateKey);
+        const dateKey = new Date(today.setHours(0, 0, 0, 0));
 
-        // Find or create today’s transporter history
-        console.log("🔎 Fetching transporter history for today...");
         let history = await TransporterHistory.findOne({ transporter: transporterId, date: dateKey });
 
         if (!history) {
-            console.log("ℹ️ No history found for today, creating new...");
             history = new TransporterHistory({
                 transporter: transporterId,
                 date: dateKey,
                 checkpoints: []
             });
-        } else {
-            console.log("✅ History found:", history._id);
         }
 
-        // Add new checkpoint
         const checkpoint = {
             location: { type: "Point", coordinates },
             scannedAt: new Date()
         };
-        console.log("📍 Adding checkpoint:", checkpoint);
         history.checkpoints.push(checkpoint);
 
         await history.save();
-        console.log("✅ History saved with new checkpoint");
 
-        // Respond with created records
-        console.log("🎉 Scan successful");
         res.status(201).json({
             message: "Scan successful",
             collection,
@@ -313,8 +264,26 @@ const showQr = async (req, res) => {
         }
 
         const transporter = await Transporter.findById(transporterId);
-        if (!transporter || !transporter.qrCodeUrl) {
-            return res.status(404).json({ message: "QR code not found" });
+        if (!transporter) {
+            return res.status(404).json({ message: "Transporter not found" });
+        }
+
+        if (!transporter.qrCodeUrl) {
+            try {
+                const qrDataUrl = await QRCode.toDataURL(transporter._id.toString());
+
+                const uploadResult = await cloudinary.uploader.upload(qrDataUrl, {
+                    folder: "qr_codes",
+                    public_id: `transporter_qr_${transporter._id}`,
+                    overwrite: true
+                });
+
+                transporter.qrCodeUrl = uploadResult.secure_url;
+                await transporter.save();
+            } catch (qrError) {
+                console.error('Error generating QR code on the fly:', qrError);
+                return res.status(500).json({ message: "Could not generate QR code" });
+            }
         }
 
         res.status(200).json({

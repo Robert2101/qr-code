@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const recyclerSchema = new Schema({
@@ -10,8 +10,14 @@ const recyclerSchema = new Schema({
     },
     email: {
         type: String,
-        required: true,
-        unique: true
+        required: false, // Email is now optional
+        unique: true,
+        sparse: true // Ensures unique constraint only applies to documents with an email
+    },
+    mobile: {
+        type: String,
+        required: true, // Mobile number is now required
+        unique: true   // Mobile number must be unique for login
     },
     password: {
         type: String,

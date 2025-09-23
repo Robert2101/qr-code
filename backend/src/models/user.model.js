@@ -8,8 +8,16 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        required: true,
+        required: false, // Email is now optional
         unique: true,
+        // sparse index ensures uniqueness is only applied to documents with an email field.
+        // This allows multiple users to register without an email address.
+        sparse: true,
+    },
+    mobile: {
+        type: String,
+        required: true, // Mobile number is now required
+        unique: true,   // Mobile number must be unique for login
     },
     password: {
         type: String,
