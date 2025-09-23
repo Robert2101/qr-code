@@ -119,6 +119,71 @@ const login = async (req, res) => {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { mobile } = req.body;
+        const transporter = await Transporter.findOne({ mobile });
+
+        // For security, always send a generic success message
+        if (!transporter) {
+            return res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+        }
+
+        const otp = otpGenerator.generate(6, {
+            upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false,
+        });
+
+        transporter.otp = await bcrypt.hash(otp, 10);
+        transporter.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+
+        await transporter.save();
+        await sendVerificationSms(mobile, otp);
+
+        res.status(200).json({ message: "If a user with this mobile number exists, an OTP has been sent." });
+
+    } catch (error) {
+        console.error("Transporter Forgot Password error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// --- NEW: Add Reset Password Function ---
+const resetPassword = async (req, res) => {
+    try {
+        const { mobile, otp, newPassword } = req.body;
+
+        if (!mobile || !otp || !newPassword) {
+            return res.status(400).json({ message: "Mobile, OTP, and new password are required." });
+        }
+
+        const transporter = await Transporter.findOne({
+            mobile,
+            otpExpires: { $gt: Date.now() },
+        });
+
+        if (!transporter) {
+            return res.status(400).json({ message: "Invalid OTP, user not found, or OTP has expired." });
+        }
+
+        const isMatch = await bcrypt.compare(otp, transporter.otp);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid OTP." });
+        }
+
+        transporter.password = await bcrypt.hash(newPassword, 10);
+        transporter.otp = undefined;
+        transporter.otpExpires = undefined;
+        await transporter.save();
+
+        res.status(200).json({ message: "Password has been reset successfully. Please log in." });
+
+    } catch (error) {
+        console.error("Transporter Reset Password error:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 const logout = (req, res) => {
     try {
         res.cookie("jwt", "", { maxAge: 0 });
@@ -304,5 +369,7 @@ export {
     checkUser,
     updateProfile,
     scan,
-    showQr
+    showQr,
+    forgotPassword,
+    resetPassword
 };
