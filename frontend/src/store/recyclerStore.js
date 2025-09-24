@@ -5,14 +5,20 @@ import toast from "react-hot-toast";
 
 axios.defaults.withCredentials = true;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const RECYCLER_API_URL = "http://localhost:5001/api/recycler"
 
 export const useRecyclerStore = create((set) => ({
-    scanResult: null,
+    history: [],
+    pendingSummary: null,
+    revenueRequests: [],
     loading: {
-        profile: false,
+        history: false,
         scan: false,
+        pending: false,
+        submit: false,
     },
     error: null,
+    scanResult: null,
 
     // Action to update the recycler's profile
     updateProfile: async (profileData) => {
@@ -78,6 +84,33 @@ export const useRecyclerStore = create((set) => ({
                 loading: { ...state.loading, history: false },
             }));
             toast.error(errorMsg);
+        }
+    },
+    fetchPendingCollections: async () => {
+        set(state => ({ loading: { ...state.loading, pending: true } }));
+        try {
+            const res = await axios.get(`${RECYCLER_API_URL}/pending-collections`);
+            set({ pendingSummary: res.data.summary });
+        } catch (err) {
+            toast.error("Failed to fetch pending collections.");
+            console.log(err);
+        } finally {
+            set(state => ({ loading: { ...state.loading, pending: false } }));
+        }
+    },
+
+    submitRevenueRequest: async (data) => {
+        set(state => ({ loading: { ...state.loading, submit: true } }));
+        try {
+            const res = await axios.post(`${RECYCLER_API_URL}/submit-revenue-request`, data);
+            toast.success("Revenue request submitted successfully!");
+            set({ pendingSummary: null });
+
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to submit request.");
+            throw err; // Allow the component to catch the error if needed
+        } finally {
+            set(state => ({ loading: { ...state.loading, submit: false } }));
         }
     },
 }));

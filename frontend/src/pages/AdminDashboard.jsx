@@ -9,46 +9,48 @@ const DashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h
 const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197" /></svg>;
 const TransporterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2 2h8a1 1 0 001-1zM3 11h10M16 16l4-4m0 0l-4-4m4 4H9" /></svg>;
 const RecyclerIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
+const RevenueIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 16v-1m0-4H9.401M15 12h-3m-3.599-1H6m9 0h2.599M12 16c-1.11 0-2.08-.402-2.599-1M12 16v1m0-1v-.01" /></svg>;
 const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>;
 const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>;
+const ViewIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>;
 
 // TransporterMap component to display location history on a map
 const TransporterMap = ({ locationHistory }) => {
     // Default center position (can be adjusted based on the first checkpoint)
     const defaultPosition = [20.5937, 78.9629]; // Default to center of India
-    
+
     // Extract checkpoints from location history
     const checkpoints = locationHistory?.checkpoints || [];
-    
+
     // Get center position from the first checkpoint if available
-    const centerPosition = checkpoints.length > 0 ? 
-        [checkpoints[0].location.coordinates[1], checkpoints[0].location.coordinates[0]] : 
+    const centerPosition = checkpoints.length > 0 ?
+        [checkpoints[0].location.coordinates[1], checkpoints[0].location.coordinates[0]] :
         defaultPosition;
-    
+
     // Create an array of positions for the polyline
     const routePositions = checkpoints.map(checkpoint => [
         checkpoint.location.coordinates[1], // Latitude
         checkpoint.location.coordinates[0]  // Longitude
     ]);
-    
+
     // Format time for display in popups
     const formatTime = (timestamp) => {
         const date = new Date(timestamp);
-        return date.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
+        return date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
             minute: '2-digit',
             hour12: true
         });
     };
-    
+
     // Get recycler information if available
     const recyclerInfo = locationHistory?.recyclerInfo;
 
     // Calculate the start and end points for special markers
     const startPoint = routePositions.length > 0 ? routePositions[0] : null;
     const endPoint = routePositions.length > 1 ? routePositions[routePositions.length - 1] : null;
-    
+
     // Custom styles for markers
     const startMarkerStyle = {
         color: 'green',
@@ -56,25 +58,25 @@ const TransporterMap = ({ locationHistory }) => {
         fillOpacity: 0.8,
         weight: 2
     };
-    
+
     const endMarkerStyle = {
         color: 'red',
         fillColor: 'red',
         fillOpacity: 0.8,
         weight: 2
     };
-    
+
     const checkpointStyle = {
         color: 'blue',
         fillColor: 'blue',
         fillOpacity: 0.6,
         weight: 1
     };
-    
+
     return (
-        <MapContainer 
-            center={centerPosition} 
-            zoom={13} 
+        <MapContainer
+            center={centerPosition}
+            zoom={13}
             style={{ height: '100%', width: '100%' }}
             className="rounded-lg shadow-inner"
         >
@@ -82,10 +84,10 @@ const TransporterMap = ({ locationHistory }) => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            
+
             {/* Draw route line */}
             {routePositions.length > 1 && (
-                <Polyline 
+                <Polyline
                     positions={routePositions}
                     color="#4f46e5" // Indigo color for route line
                     weight={4}
@@ -93,23 +95,23 @@ const TransporterMap = ({ locationHistory }) => {
                     dashArray="5, 10" // Dashed line for better visibility
                 />
             )}
-            
+
             {/* Place markers for each checkpoint */}
             {checkpoints.map((checkpoint, index) => {
                 const position = [
                     checkpoint.location.coordinates[1], // Latitude
                     checkpoint.location.coordinates[0]  // Longitude
                 ];
-                
+
                 // Determine if this is start or end point
                 const isStart = index === 0;
                 const isEnd = index === checkpoints.length - 1;
                 const markerStyle = isStart ? startMarkerStyle : (isEnd ? endMarkerStyle : checkpointStyle);
                 const markerLabel = isStart ? 'Start' : (isEnd ? 'End' : `Checkpoint ${index + 1}`);
-                
+
                 return (
-                    <Marker 
-                        key={index} 
+                    <Marker
+                        key={index}
                         position={position}
                     >
                         <Popup className="custom-popup">
@@ -138,7 +140,7 @@ const TransporterMap = ({ locationHistory }) => {
                     </Marker>
                 );
             })}
-            
+
             {/* Legend */}
             <div className="leaflet-bottom leaflet-right">
                 <div className="leaflet-control leaflet-bar bg-white p-2 rounded shadow-md">
@@ -180,6 +182,7 @@ export default function AdminDashboard() {
                         <Route path="transporters/:id" element={<TransporterDetail />} />
                         <Route path="recyclers" element={<ManageRecyclers />} />
                         <Route path="recyclers/:id" element={<RecyclerDetail />} />
+                        <Route path="revenue" element={<ManageRevenueRequests />} />
                         <Route path="*" element={<DashboardHome />} />
                     </Routes>
                 </main>
@@ -219,6 +222,7 @@ const Sidebar = ({ isSidebarOpen }) => {
                         <NavLink to="/admin/users" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}><UserIcon /><span className="ml-3">Users</span></NavLink>
                         <NavLink to="/admin/transporters" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}><TransporterIcon /><span className="ml-3">Transporters</span></NavLink>
                         <NavLink to="/admin/recyclers" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}><RecyclerIcon /><span className="ml-3">Recyclers</span></NavLink>
+                        <NavLink to="/admin/revenue" className={({ isActive }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`}><RevenueIcon /><span className="ml-3">Revenue</span></NavLink>
                     </nav>
                     <div className="px-4 py-6">
                         <button onClick={handleLogout} className="w-full flex items-center justify-center px-4 py-3 text-gray-200 bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200">
@@ -231,6 +235,8 @@ const Sidebar = ({ isSidebarOpen }) => {
         </AnimatePresence>
     );
 };
+
+// --- Header ---
 const Header = ({ toggleSidebar }) => {
     const { admin } = useAdminStore();
     return (
@@ -246,6 +252,8 @@ const Header = ({ toggleSidebar }) => {
         </header>
     );
 };
+
+// --- Dashboard Home ---
 const DashboardHome = () => {
     const { admin, stats, getDashboardStats, loading } = useAdminStore();
 
@@ -259,13 +267,13 @@ const DashboardHome = () => {
         { title: 'Total Users', value: stats.userCount, icon: <UserIcon /> },
         { title: 'Total Transporters', value: stats.transporterCount, icon: <TransporterIcon /> },
         { title: 'Total Recyclers', value: stats.recyclerCount, icon: <RecyclerIcon /> },
-        { title: 'Total Weight Collected (kg)', value: stats.totalWeightCollected, icon: '♻️' },
+        { title: 'Total Weight Collected (kg)', value: (stats.totalWeightCollected || 0).toFixed(2), icon: '♻️' },
     ];
 
     return (
         <div>
             <h2 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
-            {loading ? <p>Loading stats...</p> : (
+            {loading.stats ? <p>Loading stats...</p> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {statCards.map((card, index) => (
                         <motion.div key={index}
@@ -314,7 +322,7 @@ const ManageUsers = () => {
     return (
         <div className="bg-white p-6 rounded-xl shadow-md">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Manage Users</h2>
-            {loading ? <p>Loading users...</p> : (
+            {loading.users ? <p>Loading users...</p> : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white">
                         <thead className="bg-gray-50">
@@ -322,7 +330,6 @@ const ManageUsers = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
-                                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet (₹)</th> */}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -333,12 +340,11 @@ const ManageUsers = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{user.email || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{user.mobile}</td>
-                                    {/* <td className="px-6 py-4 whitespace-nowrap">{user.walletBalance?.toFixed(2) || '0.00'}</td> */}
                                     <td className="px-6 py-4 whitespace-nowrap">{formatAddress(user.address)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
+                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-4">
                                         <button onClick={() => handleEditClick(user)} className="text-blue-600 hover:text-blue-900"><EditIcon /></button>
                                         <NavLink to={`/admin/users/${user._id}`} className="text-green-600 hover:text-green-900">
-                                            {/* view icon */}
+                                            <ViewIcon />
                                         </NavLink>
                                     </td>
                                 </tr>
@@ -352,6 +358,7 @@ const ManageUsers = () => {
     );
 };
 
+// --- Manage Transporters ---
 const ManageTransporters = () => {
     const { admin, transporters, getAllTransporters, loading, createTransporter, updateTransporterById } = useAdminStore();
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -391,13 +398,12 @@ const ManageTransporters = () => {
                     <PlusIcon /> Add Transporter
                 </button>
             </div>
-            {loading ? <p>Loading...</p> : (
+            {loading.transporters ? <p>Loading transporters...</p> : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet (₹)</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Info</th>
@@ -408,14 +414,13 @@ const ManageTransporters = () => {
                             {transporters.map(t => (
                                 <tr key={t._id}>
                                     <td className="px-6 py-4 whitespace-nowrap">{t.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{t.email || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{t.mobile}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{t.walletBalance?.toFixed(2) || '0.00'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{(t.walletBalance || 0).toFixed(2)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatVehicleInfo(t.vehicleInfo)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
+                                    <td className="px-6 py-4 whitespace-nowrap flex space-x-4">
                                         <button onClick={() => handleEditClick(t)} className="text-blue-600 hover:text-blue-900"><EditIcon /></button>
                                         <NavLink to={`/admin/transporters/${t._id}`} className="text-green-600 hover:text-green-900">
-                                            {/* view icon */}
+                                            <ViewIcon />
                                         </NavLink>
                                     </td>
                                 </tr>
@@ -445,9 +450,9 @@ const TransporterDetail = () => {
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -458,7 +463,7 @@ const TransporterDetail = () => {
         navigate('/admin/transporters');
     };
 
-    if (loading) {
+    if (loading.details) {
         return (
             <div className="bg-white p-6 rounded-xl shadow-md">
                 <p className="text-center">Loading transporter data...</p>
@@ -611,8 +616,8 @@ const TransporterDetail = () => {
                 <div className="flex flex-col md:flex-row gap-4 mb-4">
                     <div className="md:w-1/3">
                         <label htmlFor="date-select" className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             id="date-select"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
@@ -620,7 +625,7 @@ const TransporterDetail = () => {
                         />
                     </div>
                 </div>
-                
+
                 {transporterLocationHistory ? (
                     transporterLocationHistory.checkpoints && transporterLocationHistory.checkpoints.length > 0 ? (
                         <div className="h-96 w-full rounded-lg overflow-hidden border border-gray-300">
@@ -636,6 +641,7 @@ const TransporterDetail = () => {
         </div>
     );
 };
+
 
 const Modal = ({ children, onClose, title }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-center items-center" onClick={onClose}>
@@ -785,7 +791,7 @@ const UserDetail = () => {
                     // Get user details
                     const userData = await getUserById(id);
                     setUser(userData);
-                    
+
                     // Get user's waste collections
                     const collectionsData = await getUserCollections(id);
                     setCollections(collectionsData || []);
@@ -796,7 +802,7 @@ const UserDetail = () => {
                 }
             }
         };
-        
+
         fetchUserData();
     }, [admin, id, getUserById, getUserCollections]);
 
@@ -806,9 +812,9 @@ const UserDetail = () => {
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -972,9 +978,7 @@ const ManageRecyclers = () => {
     const [selectedRecycler, setSelectedRecycler] = useState(null);
 
     useEffect(() => {
-        if (admin) {
-            getAllRecyclers();
-        }
+        if (admin) getAllRecyclers();
     }, [admin, getAllRecyclers]);
 
     const handleCreate = async (data) => {
@@ -985,6 +989,7 @@ const ManageRecyclers = () => {
     const handleUpdate = async (data) => {
         await updateRecycler(selectedRecycler._id, data);
         setUpdateModalOpen(false);
+        setSelectedRecycler(null);
     };
 
     const handleEditClick = (recycler) => {
@@ -993,8 +998,7 @@ const ManageRecyclers = () => {
     };
 
     const formatLocation = (location) => {
-        if (!location || typeof location !== 'object') return location || 'N/A';
-        // Corrected to use zipCode as per your schema
+        if (!location || typeof location !== 'object') return 'N/A';
         return [location.address, location.city, location.state, location.zipCode].filter(Boolean).join(', ');
     };
 
@@ -1006,7 +1010,7 @@ const ManageRecyclers = () => {
                     <PlusIcon /> Add Recycler
                 </button>
             </div>
-            {loading ? <p>Loading recyclers...</p> : (
+            {loading.recyclers ? <p>Loading recyclers...</p> : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white">
                         <thead className="bg-gray-50">
@@ -1023,17 +1027,12 @@ const ManageRecyclers = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{r.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{r.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{formatLocation(r.location)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex">
-                                        <button onClick={() => handleEditClick(r)} className="text-indigo-600 hover:text-indigo-900 mr-4">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-4">
+                                        <button onClick={() => handleEditClick(r)} className="text-indigo-600 hover:text-indigo-900">
+                                            <EditIcon />
                                         </button>
                                         <NavLink to={`/admin/recyclers/${r._id}`} className="text-blue-600 hover:text-blue-900">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
+                                            <ViewIcon />
                                         </NavLink>
                                     </td>
                                 </tr>
@@ -1100,9 +1099,9 @@ const RecyclerDetail = () => {
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -1300,3 +1299,138 @@ const UpdateRecyclerModal = ({ recycler, onUpdate, onClose }) => {
     );
 };
 
+const ManageRevenueRequests = () => {
+    const { loading, revenueRequests, fetchRevenueRequests } = useAdminStore();
+    const [selectedRequest, setSelectedRequest] = useState(null);
+
+    useEffect(() => {
+        fetchRevenueRequests();
+    }, [fetchRevenueRequests]);
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'Pending': return 'bg-yellow-100 text-yellow-800';
+            case 'Approved': return 'bg-green-100 text-green-800';
+            case 'Declined': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-md">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Manage Revenue Requests</h2>
+            {loading.requests ? <p>Loading requests...</p> : (
+                <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recycler</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {revenueRequests.map(req => (
+                                <tr key={req._id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">{req.recycler?.name || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{new Date(req.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">₹{req.totalCalculatedRevenue.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(req.status)}`}>
+                                            {req.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button onClick={() => setSelectedRequest(req)} className="text-indigo-600 hover:text-indigo-900">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            {selectedRequest && <RequestDetailModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />}
+        </div>
+    );
+};
+
+// --- RequestDetailModal [FIXED] ---
+const RequestDetailModal = ({ request, onClose }) => {
+    const { approveRevenueRequest, declineRevenueRequest, loading } = useAdminStore();
+
+    const handleApprove = async () => {
+        await approveRevenueRequest(request._id);
+        onClose();
+    };
+
+    const handleDecline = async () => {
+        await declineRevenueRequest(request._id);
+        onClose();
+    };
+
+    // Display finalDistribution if available (for Approved requests), otherwise show the initially calculated distribution
+    const distribution = request.finalDistribution || request.distribution;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl p-6 animate-fade-in-up">
+                <div className="flex justify-between items-center mb-4 border-b pb-3">
+                    <h2 className="text-2xl font-bold text-gray-800">Request Details</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2">Request Information</h3>
+                        <div className="text-sm space-y-2">
+                            <p><strong>Recycler:</strong> {request.recycler?.name}</p>
+                            <p><strong>Date Submitted:</strong> {new Date(request.createdAt).toLocaleString()}</p>
+                            <p><strong>Status:</strong> <span className="font-bold">{request.status}</span></p>
+                            <p><strong>Total Collections:</strong> {request.collections?.length || 0}</p>
+                        </div>
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                            <h4 className="font-semibold mb-2">Submitted Prices (per KG)</h4>
+                            <div className="flex justify-between text-sm">
+                                <span>Wet: ₹{(request.wastePrices?.wet || 0).toFixed(2)}</span>
+                                <span>Dry: ₹{(request.wastePrices?.dry || 0).toFixed(2)}</span>
+                                <span>Hazardous: ₹{(request.wastePrices?.hazardous || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Right Column */}
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2">Financial Breakdown</h3>
+                        <div className="space-y-2 text-sm p-3 bg-green-50 rounded-lg">
+                            <p className="flex justify-between"><span>User Share:</span> <strong>₹{(distribution?.totalUserShare || 0).toFixed(2)}</strong></p>
+                            <p className="flex justify-between"><span>Transporter Share:</span> <strong>₹{(distribution?.totalTransporterShare || 0).toFixed(2)}</strong></p>
+                            <p className="flex justify-between"><span>Municipality Share:</span> <strong>₹{(distribution?.municipalityShare || 0).toFixed(2)}</strong></p>
+                            <p className="flex justify-between"><span>Central Gov. Share:</span> <strong>₹{(distribution?.centralGovShare || 0).toFixed(2)}</strong></p>
+                            <hr className="my-1" />
+                            <p className="flex justify-between font-bold"><span>Recycler Kept:</span> <span>₹{(distribution?.recyclerShare || 0).toFixed(2)}</span></p>
+                        </div>
+                        <div className="mt-4 text-right">
+                            <p className="text-gray-600">Total Calculated Revenue</p>
+                            <p className="text-2xl font-bold text-gray-800">₹{(request.totalCalculatedRevenue || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {request.status === 'Pending' && (
+                    <div className="flex justify-end space-x-3 pt-6 mt-6 border-t">
+                        <button onClick={handleDecline} disabled={loading.action} className="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 disabled:bg-gray-400">
+                            {loading.action ? '...' : 'Decline'}
+                        </button>
+                        <button onClick={handleApprove} disabled={loading.action} className="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-gray-400">
+                            {loading.action ? '...' : 'Approve'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+};

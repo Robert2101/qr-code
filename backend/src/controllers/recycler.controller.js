@@ -3,6 +3,7 @@ import { generateToken } from "../utils/jwt.js";
 import Recycler from "../models/recycler.model.js";
 import Collection from "../models/collection.model.js";
 import Transporter from "../models/transporter.model.js";
+import RevenueRequest from "../models/RevenueRequest.model.js";
 
 const register = async (req, res) => {
     try {
@@ -243,4 +244,89 @@ const getRecyclerHistory = async (req, res) => {
     }
 };
 
-export { register, login, logout, checkUser, updateProfile, scanQRCode, getRecyclerHistory };
+const getPendingCollections = async (req, res) => {
+    try {
+        const recyclerId = req.user.id;
+
+        // Find all collections that have been dumped but not yet completed (paid for)
+        const collections = await Collection.find({
+            recycler: recyclerId,
+            status: 'Trash Dumped'
+        });
+
+        if (collections.length === 0) {
+            return res.status(200).json({
+                message: "No pending collections to process for revenue.",
+                summary: { totalWeight: 0, wet: 0, dry: 0, hazardous: 0, collectionIds: [] }
+            });
+        }
+
+        // Calculate a summary of the waste to show the recycler
+        const summary = collections.reduce((acc, doc) => {
+            acc.totalWeight += doc.weight;
+            acc.wet += doc.wasteTypes.wet || 0;
+            acc.dry += doc.wasteTypes.dry || 0;
+            acc.hazardous += doc.wasteTypes.hazardous || 0;
+            acc.collectionIds.push(doc._id);
+            return acc;
+        }, { totalWeight: 0, wet: 0, dry: 0, hazardous: 0, collectionIds: [] });
+
+        res.status(200).json({ summary });
+
+    } catch (error) {
+        console.error("💥 Error fetching pending collections:", error);
+        res.status(500).json({ message: "Server error while fetching pending collections" });
+    }
+};
+
+// --- NEW: Controller to submit the revenue request to the admin ---
+const submitRevenueRequest = async (req, res) => {
+    try {
+        const recyclerId = req.user.id;
+        const { wastePrices, collectionIds } = req.body;
+
+        // Basic validation
+        if (!wastePrices || !collectionIds || collectionIds.length === 0 || !wastePrices.wet || !wastePrices.dry || !wastePrices.hazardous) {
+            return res.status(400).json({ message: "Prices for all waste types and a list of collections are required." });
+        }
+
+        // Security check: Verify the collections belong to this recycler and are in the correct state
+        const collections = await Collection.find({
+            '_id': { $in: collectionIds },
+            'recycler': recyclerId,
+            'status': 'Trash Dumped'
+        });
+
+        // If the number of found collections doesn't match, it means some were invalid or already processed
+        if (collections.length !== collectionIds.length) {
+            return res.status(400).json({ message: "Data mismatch. Some collections may have already been processed. Please refresh and try again." });
+        }
+
+        // Calculate the total revenue based on the prices submitted by the recycler
+        const totalCalculatedRevenue = collections.reduce((total, collection) => {
+            const wetValue = (collection.wasteTypes.wet || 0) * (parseFloat(wastePrices.wet) || 0);
+            const dryValue = (collection.wasteTypes.dry || 0) * (parseFloat(wastePrices.dry) || 0);
+            const hazardousValue = (collection.wasteTypes.hazardous || 0) * (parseFloat(wastePrices.hazardous) || 0);
+            return total + wetValue + dryValue + hazardousValue;
+        }, 0);
+
+        // Create the request document for admin approval
+        const newRequest = new RevenueRequest({
+            recycler: recyclerId,
+            collections: collectionIds,
+            wastePrices,
+            totalCalculatedRevenue: totalCalculatedRevenue
+        });
+
+        await newRequest.save();
+
+        res.status(201).json({ message: "Revenue request submitted successfully and is now pending admin approval." });
+
+    } catch (error) {
+        console.error("💥 Error submitting revenue request:", error);
+        res.status(500).json({ message: "Server error during revenue submission" });
+    }
+};
+
+
+export { register, login, logout, checkUser, updateProfile, scanQRCode, getRecyclerHistory, getPendingCollections, submitRevenueRequest };

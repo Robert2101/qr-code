@@ -6,6 +6,8 @@ import Collection from '../models/collection.model.js';
 import Admin from '../models/admin.model.js';
 import { generateToken } from '../utils/jwt.js'
 import TransporterHistory from '../models/transporterhistory.model.js'
+import RevenueRequest from '../models/RevenueRequest.model.js';
+import mongoose from 'mongoose';
 // ## Dashboard Controller ##
 export const checkUser = async (req, res) => {
     try {
@@ -511,3 +513,91 @@ export const updateRecyclerById = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+
+export const getRevenueRequests = async (req, res) => {
+    try {
+        const requests = await RevenueRequest.find()
+            .populate('recycler', 'name')
+            .sort({ createdAt: -1 });
+        res.status(200).json(requests);
+    } catch (error) {
+        console.error("Error fetching revenue requests:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const approveRevenueRequest = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { requestId } = req.params;
+        const request = await RevenueRequest.findById(requestId).session(session);
+
+        if (!request || request.status !== 'Pending') {
+            await session.abortTransaction();
+            return res.status(404).json({ message: "Request not found or already processed." });
+        }
+
+        const collections = await Collection.find({ '_id': { $in: request.collections } }).session(session);
+        const totalRevenue = request.totalCalculatedRevenue;
+
+        // Calculate shares
+        const totalUserShare = totalRevenue * 0.40;
+        const totalTransporterShare = totalRevenue * 0.30;
+        const totalGovShare = totalRevenue * 0.30;
+        const recyclerShare = totalRevenue - (totalUserShare + totalTransporterShare + totalGovShare);
+
+        // Distribute to Users
+        for (const collection of collections) {
+            const userShare = (totalUserShare / collections.length); // simple equal split for this example
+            await User.findByIdAndUpdate(collection.user, { $inc: { walletBalance: userShare } }).session(session);
+        }
+
+        // Distribute to Transporters
+        const transporterIds = [...new Set(collections.map(c => c.transporter.toString()))];
+        for (const transporterId of transporterIds) {
+            const transporterShare = (totalTransporterShare / transporterIds.length);
+            await Transporter.findByIdAndUpdate(transporterId, { $inc: { walletBalance: transporterShare } }).session(session);
+        }
+
+        // Update request status and final distribution
+        request.status = 'Approved';
+        request.finalDistribution = {
+            totalUserShare,
+            totalTransporterShare,
+            municipalityShare: totalGovShare * 0.5, // 15%
+            centralGovShare: totalGovShare * 0.5, // 15%
+            recyclerShare
+        };
+        await request.save({ session });
+
+        // Update collections status
+        await Collection.updateMany({ '_id': { $in: request.collections } }, { $set: { status: 'Completed' } }).session(session);
+
+        await session.commitTransaction();
+        res.status(200).json({ message: "Revenue request approved and funds distributed." });
+
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error approving request:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    } finally {
+        session.endSession();
+    }
+};
+
+export const declineRevenueRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const request = await RevenueRequest.findByIdAndUpdate(requestId, { status: 'Declined' }, { new: true });
+        if (!request) {
+            return res.status(404).json({ message: "Request not found." });
+        }
+        res.status(200).json({ message: "Revenue request has been declined." });
+    } catch (error) {
+        console.error("Error declining request:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+

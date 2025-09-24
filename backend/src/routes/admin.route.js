@@ -18,7 +18,10 @@ import {
     updateRecyclerById,
     getRecyclerCollections,
     login,
-    checkUser
+    checkUser,
+    getRevenueRequests,
+    approveRevenueRequest,
+    declineRevenueRequest
 } from '../controllers/admin.controller.js';
 
 const router = express.Router();
@@ -27,6 +30,15 @@ const router = express.Router();
 router.post('/login', login);
 router.use(adminMiddleware);
 router.get('/check-user', checkUser);
+router.post('/logout', (req, res) => {
+    try {
+        res.cookie("jwt", "", { maxAge: 0 });
+        res.status(200).json({ message: "Logout successful" });
+    } catch (err) {
+        console.error("error in logout:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 // ## Dashboard Routes ##
 router.get('/stats', getDashboardStats);
@@ -49,5 +61,9 @@ router.get('/recyclers', getAllRecyclers);
 router.post('/recyclers', createRecycler);
 router.put('/recyclers/:id', updateRecyclerById);
 router.get('/recyclers/:id/collections', getRecyclerCollections);
+
+router.get('/revenue-requests', getRevenueRequests);
+router.post('/revenue-requests/:requestId/approve', approveRevenueRequest);
+router.post('/revenue-requests/:requestId/decline', declineRevenueRequest);
 
 export default router;
